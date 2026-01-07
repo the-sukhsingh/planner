@@ -47,7 +47,8 @@ export default defineSchema({
         createdAt: v.number(),
         updatedAt: v.number(),
     }).index("by_user", ["userId"])
-        .index("by_status", ["status"]),
+        .index("by_status", ["status"])
+        .index("by_user_name", ["userId", "title"]),
 
     todos: defineTable({
         planId: v.id("plans"),
@@ -124,5 +125,77 @@ export default defineSchema({
         createdAt: v.number(),
     }).index("by_user", ["userId"])
         .index("by_chat", ["chatId"]),
+
+    learningSessions: defineTable({
+        userId: v.id("users"),
+
+        planId: v.optional(v.id("plans")),
+        todoId: v.optional(v.id("todos")),
+
+        startedAt: v.number(),
+        endedAt: v.optional(v.number()),
+        durationMs: v.optional(v.number()),
+
+        source: v.union(
+            v.literal("manual"),
+            v.literal("timer"),
+            v.literal("auto")
+        ),
+
+        createdAt: v.number(),
+    })
+        .index("by_user", ["userId"])
+        .index("by_user_startedAt", ["userId", "startedAt"]),
+
+    userStats: defineTable({
+        userId: v.id("users"),
+
+        currentStreak: v.number(),
+        longestStreak: v.number(),
+        lastActiveDate: v.string(), // "YYYY-MM-DD"
+
+        totalLearningTimeMs: v.number(),
+        weeklyLearningTimeMs: v.number(),
+        monthlyLearningTimeMs: v.number(),
+
+        updatedAt: v.number(),
+    })
+        .index("by_user", ["userId"]),
+
+    leaderboards: defineTable({
+        type: v.union(
+            v.literal("weekly_time"),
+            v.literal("monthly_time"),
+            v.literal("streak"),
+            v.literal("todos_completed")
+        ),
+
+        period: v.string(), // "2026-W05", "2026-01"
+
+        entries: v.array(v.object({
+            userId: v.id("users"),
+            score: v.number(),
+            rank: v.number(),
+        })),
+
+        generatedAt: v.number(),
+    })
+        .index("by_type_period", ["type", "period"]),
+
+    events: defineTable({
+        userId: v.optional(v.id("users")),
+        type: v.string(), // "timer_start", "todo_complete"
+        payload: v.any(),
+        createdAt: v.number(),
+    })
+        .index("by_type", ["type"]),
+
+    badges: defineTable({
+        userId: v.id("users"),
+        name: v.string(),
+        description: v.string(),
+        iconUrl: v.string(),
+        createdAt: v.number(),
+    }).index("by_user", ["userId"]),
 
 });

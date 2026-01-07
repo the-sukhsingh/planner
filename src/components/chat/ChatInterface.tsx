@@ -30,7 +30,7 @@ interface ChatInterfaceProps {
 
 const ChatInterface = ({ initialChatId = null, initialMessages = [], showHeader = true, showInput = true }: ChatInterfaceProps) => {
     const { data: session } = useSession()
-    const { setSelectedConversationId } = useChat()
+    const { selectedConversationId, setSelectedConversationId } = useChat()
     const { user } = useAuth();
     const [messages, setMessages] = useState<ChatMessage[]>(initialMessages)
     const [isLoading, setIsLoading] = useState(false)
@@ -39,7 +39,9 @@ const ChatInterface = ({ initialChatId = null, initialMessages = [], showHeader 
     const eventSourceRef = useRef<EventSource | null>(null)
     const lastMessageIdRef = useRef<string | null>(null)
     const seenMessageIdsRef = useRef<Set<string>>(new Set())
-    const [chatId, setChatId] = useState<string | null>(initialChatId)
+    // Use selectedConversationId from context if available, otherwise use initialChatId
+    const [chatId, setChatId] = useState<string | null>(initialChatId || (selectedConversationId as string | null))
+    const prevChatIdRef = useRef<string | null>(chatId)
 
     // Fetch messages from Convex when chatId is available
     const convexMessages = useQuery(
@@ -47,9 +49,35 @@ const ChatInterface = ({ initialChatId = null, initialMessages = [], showHeader 
         chatId && user?._id ? { userId: user._id, chatId: chatId as Id<"chats"> } : "skip"
     );
 
-    // Sync Convex messages to local state
+    const dummyMessages: String[] = [
+        "Create a planner to learn React in 30 days.",
+        "Generate a study schedule for mastering Python programming.",
+        "Design a learning path for data science beginners.",
+        "Give me a weekly plan to improve my math skills.",
+        "What is my today's learning agenda?",
+        "Suggest resources to learn machine learning effectively."
+    ]
+
+    // Sync messages from Convex
     useEffect(() => {
-        if (convexMessages && convexMessages.length > 0) {
+        // If chatId changed, replace all messages
+        if (chatId !== prevChatIdRef.current) {
+            prevChatIdRef.current = chatId;
+            if (convexMessages && convexMessages.length > 0) {
+                const formattedMessages: ChatMessage[] = convexMessages.map((msg) => ({
+                    id: msg._id,
+                    content: msg.content,
+                    sender: msg.role === 'user' ? 'user' : 'ai',
+                    timestamp: new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                    type: 'text',
+                }));
+                setMessages(formattedMessages);
+            } else if (!chatId) {
+                // Clear messages when starting a new chat
+                setMessages([]);
+            }
+        } else if (convexMessages && chatId) {
+            // Same chat, update messages from Convex (for new AI responses)
             const formattedMessages: ChatMessage[] = convexMessages.map((msg) => ({
                 id: msg._id,
                 content: msg.content,
@@ -59,11 +87,20 @@ const ChatInterface = ({ initialChatId = null, initialMessages = [], showHeader 
             }));
             setMessages(formattedMessages);
         }
-    }, [convexMessages]);
+    }, [chatId, convexMessages]);
+
+    // Sync chatId when selectedConversationId changes from outside (e.g., user selects a conversation)
+    useEffect(() => {
+        if (selectedConversationId && selectedConversationId !== chatId) {
+            setChatId(selectedConversationId as string);
+        }
+    }, [selectedConversationId]);
 
     const handleNewChat = () => {
         setMessages([])
         setChatId(null)
+        prevChatIdRef.current = null
+        setSelectedConversationId(null)
         lastMessageIdRef.current = null
         seenMessageIdsRef.current.clear()
         if (eventSourceRef.current) {
@@ -132,12 +169,14 @@ const ChatInterface = ({ initialChatId = null, initialMessages = [], showHeader 
                     timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                 }
                 setMessages(prev => [...prev, errorMessage])
-                setIsLoading(false)
             } else {
-                if (data.conversationId && !chatId) {
-                    setChatId(data.conversationId)
-                    // Sync with global chat context - Convex will auto-update
-                    setSelectedConversationId(data.conversationId as Id<"chats">);
+                if (data.conversationId) {
+                    // Only update chatId if it's a new conversation
+                    if (!chatId) {
+                        setChatId(data.conversationId)
+                        // Sync with global chat context
+                        setSelectedConversationId(data.conversationId as Id<"chats">);
+                    }
                 }
             }
         } catch (error) {
@@ -149,29 +188,22 @@ const ChatInterface = ({ initialChatId = null, initialMessages = [], showHeader 
                 timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
             }
             setMessages(prev => [...prev, errorMessage])
-            setIsLoading(false)
         }
+        setIsLoading(false)
+
     }
 
     const handleFiles = (files: FileList) => {
         filesRef.current = files
     }
 
+
     return (
-        <div className="flex flex-col h-full w-full max-w-4xl mx-auto ">
+        <div className="flex flex-col h-full w-full max-w-4xl mx-auto">
             {
-                showHeader && <div className="flex items-center justify-between gap-4">
+                showHeader && <div className="flex items-center justify-end gap-4 absolute inset-x-0 top-2 right-2 z-50">
                     <div className="flex items-center gap-3">
                         <Button variant="ghost" size="sm" onClick={handleNewChat} aria-label="Start new chat">+ New Chat</Button>
-                        <div className="text-sm text-muted-foreground">{messages.length} messages</div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        {isLoading && (
-                            <div className="flex items-center gap-2 text-neutral-500 dark:text-neutral-400">
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                                <span className="text-sm">Processing...</span>
-                            </div>
-                        )}
                     </div>
                 </div>
             }
@@ -200,6 +232,21 @@ const ChatInterface = ({ initialChatId = null, initialMessages = [], showHeader 
                     </>
                 )}
             </div>
+            {!selectedConversationId && messages.length === 0 && (
+                <div className='flex flex-col pt-4 '>
+                    {dummyMessages.map((text, index) => (
+                        <Button
+                            key={index}
+                            variant="outline"
+                            className="mb-2 mx-auto"
+                            onClick={() => handleSendMessage(text as string)}
+                        >
+                            {text}
+                        </Button>
+                    ))}
+                </div>
+            )}
+            
             {
                 showInput && <div className="">
                     <ChatInput

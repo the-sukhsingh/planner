@@ -2,7 +2,6 @@ import DodoPayments from 'dodopayments';
 import { NextResponse } from 'next/server';
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../convex/_generated/api";
-import { Id } from '../../../../convex/_generated/dataModel';
 
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
@@ -11,10 +10,12 @@ const client = new DodoPayments({
     environment: process.env.DODO_PAYMENTS_ENVIRONMENT as 'live_mode' | 'test_mode' || 'live_mode', // defaults to 'live_mode'
 });
 
+
+
 export const POST = async (req: Request) => {
 
     try {
-        const { prodID, userEmail, userName, credits } = await req.json();
+        const { prodID, userEmail, userName } = await req.json();
 
         const user = await convex.query(api.users.getUserByEmail, { email: userEmail });
         if (!user) {
@@ -29,7 +30,7 @@ export const POST = async (req: Request) => {
             return_url: process.env.DODO_PAYMENTS_RETURN_URL || 'https://localhost:3000/plans',
             metadata: {
                 userId: user._id,
-                credits: credits.toString(),
+                credits: getCredits(prodID).toString(),
             }
         });
         console.log("Session is", session);
@@ -38,4 +39,14 @@ export const POST = async (req: Request) => {
         console.error('Error creating checkout session:', error);
         return NextResponse.json({ error: 'Failed to create checkout session' }, { status: 500 });
     }
+};
+
+const CREDIT_PACKS: Record<string, number> = {
+    pdt_0NVkfbJeSIbqQxDZFZpQA: 100,
+    pdt_0NVl8hUVufh9IXEDXgI8u: 400,
+    pdt_0NVlZtyWjflp2R1yZP0H7: 1000,
+};
+
+export const getCredits = (prodId: string): number => {
+    return CREDIT_PACKS[prodId] ?? 0;
 };

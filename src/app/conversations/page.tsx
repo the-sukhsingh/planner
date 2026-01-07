@@ -3,7 +3,6 @@ import React, { useEffect, useState, useMemo } from 'react'
 import ConversationManager from '@/components/ConversationManager'
 import ChatInterface from '@/components/chat/ChatInterface'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { MessageSquare, Plus, Search, Calendar, ChevronRight, Hash, Clock, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Input } from '@/components/ui/input'
@@ -47,16 +46,15 @@ const ConversationsPage = () => {
   }
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] bg-background overflow-hidden animate-in fade-in duration-500 relative">
+    <div className="flex h-[calc(100vh-4rem)] max-w-6xl mx-auto border-x bg-background overflow-hidden animate-in fade-in duration-500 relative">
       {/* Sidebar - Full width on mobile, w-96 on desktop */}
       <aside className="w-full md:w-96 border-r flex flex-col bg-accent/5 backdrop-blur-xl">
-        <div className="p-6 space-y-6">
+        <div className="p-4 space-y-6">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="h-8 w-8 bg-primary rounded-lg flex items-center justify-center">
-                <MessageSquare className="h-4 w-4 text-primary-foreground" />
-              </div>
-              <h2 className="text-xl font-bold tracking-tighter">Messages</h2>
+            <div className="space-y-2">
+              <h1 className="text-3xl font-bold tracking-tight mb-2 ">
+                Chats
+              </h1>
             </div>
             <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full border hidden md:flex" onClick={() => handleNewChat()}>
               <Plus className="h-4 w-4" />

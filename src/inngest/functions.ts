@@ -93,20 +93,20 @@ export const ask = inngest.createFunction(
         });
 
         // Get conversation history
-        // const history = await step.run("get-conversation-history", async () => {
-        //     const chatIdTyped = conversationId as Id<"chats">;
-        //     const userIdTyped = getUserId as Id<"users">;
+        const history = await step.run("get-conversation-history", async () => {
+            const chatIdTyped = conversationId as Id<"chats">;
+            const userIdTyped = getUserId as Id<"users">;
             
-        //     const messages = await convex.query(api.messages.listChatMessages, {
-        //         userId: userIdTyped,
-        //         chatId: chatIdTyped
-        //     });
+            const messages = await convex.query(api.messages.listChatMessages, {
+                userId: userIdTyped,
+                chatId: chatIdTyped
+            });
             
-        //     return messages.map(msg => ({
-        //         role: msg.role,
-        //         content: msg.content
-        //     }));
-        // });
+            return messages.map(msg => ({
+                role: msg.role,
+                content: msg.content
+            }));
+        });
 
 
         const result = await step.ai.wrap('generate-content', async () => {
@@ -114,12 +114,12 @@ export const ask = inngest.createFunction(
                 question,
                 fileUrls,
                 userId: getUserId.toString(),
-                // history
+                history
             })
         })
         // Store response in database
-        let storeResult;
-        if (result && result.success && 'output' in result) {
+        const storeResult = await step.run("store-response", async () => {
+            if (result && result.success && 'output' in result) {
             console.log("Successfully generated planner:", result.output);
 
             const chatIdTyped = conversationId as Id<"chats">;
@@ -129,12 +129,12 @@ export const ask = inngest.createFunction(
                 content: String(result.output),
             });
 
-            storeResult = {
+            return {
                 status: "success",
                 message: "Planner created successfully",
                 output: result.output
             };
-        } else {
+            } else {
             const error = result && 'error' in result ? result.error : "Failed to generate planner";
             console.error("Failed to generate planner:", error);
 
@@ -145,11 +145,12 @@ export const ask = inngest.createFunction(
                 content: `I encountered an error while creating your learning plan: ${String(error)}. Please try again.`,
             });
 
-            storeResult = {
+            return {
                 status: "error",
                 message: error
             };
-        }
+            }
+        });
 
         // Delete the uploaded files from Convex storage after content generation
         await step.run("cleanup-files", async () => {

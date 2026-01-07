@@ -631,7 +631,7 @@ export const createMultipleTodos = mutation({
             order: v.number(),
             priority: v.optional(v.union(v.literal("low"), v.literal("medium"), v.literal("high"))),
             status: v.optional(v.string()),
-            dueDate: v.number(),
+            dueDate: v.optional(v.number()),
             estimatedTime: v.optional(v.number()),
             resources: v.optional(v.array(v.string())),
         }))
@@ -639,8 +639,17 @@ export const createMultipleTodos = mutation({
     returns: v.array(v.id("todos")),
     handler: async (ctx, args) => {
         const todoIds: Id<"todos">[] = [];
-        
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
         for (const todo of args.todos) {
+
+            if (!todo.dueDate) {
+                // If dueDate not provided, set to start of today
+                todo.dueDate = today.getTime();
+                today.setDate(today.getDate() + 1); // Increment day for next todo without dueDate
+            }
+
             const todoId = await ctx.db.insert("todos", {
                 planId: todo.planId,
                 title: todo.title,
@@ -660,3 +669,60 @@ export const createMultipleTodos = mutation({
         return todoIds;
     },
 });
+
+
+
+export const createTodoForToday = mutation({
+    args: {
+        title: v.string(),
+        description: v.optional(v.string()),
+        resources: v.optional(v.array(v.string())),
+        userId: v.id("users"),
+    }, 
+    returns: v.id("todos"),
+    handler: async (ctx, args) => {
+        // Get or create "Today Date" plan for user
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const todayDateStr = today.toISOString().split("T")[0]; // YYYY-MM-DD
+        let plan = await ctx.db
+            .query("plans")
+            .withIndex("by_user_name", (q) => 
+                q.eq("userId", args.userId).eq("title", `Date - ${todayDateStr}`)
+            )
+            .unique();
+    
+        if (!plan) {
+            const planId = await ctx.db.insert("plans", {
+                userId: args.userId,
+                title: `Date - ${todayDateStr}`,
+                description: "Tasks for today",
+                createdAt: Date.now(),
+                updatedAt: Date.now(),
+                difficulty: "medium",
+                isForked: false,
+                status: "active",
+
+            });
+            plan = await ctx.db.get(planId);
+        }
+        if (!plan) {
+            throw new Error("Failed to create or retrieve today's plan");
+        }
+
+        const todoId = await ctx.db.insert("todos", {
+            planId: plan._id,
+            title: args.title,
+            description: args.description,
+            order: 0,
+            priority: "medium",
+            status: "pending",
+            dueDate: today.getTime(),
+            estimatedTime: undefined,
+            resources: args.resources,
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+        });
+        return todoId;
+    }
+})

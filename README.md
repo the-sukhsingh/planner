@@ -1,105 +1,210 @@
-# Planner - AI Learning Roadmap Generator
+# 🎯 Planner - AI-Powered Learning Orchestration Platform
 
-Planner is a powerful web application designed to help users create, manage, and share personalized learning roadmaps. Leveraging state-of-the-art AI, Planner transforms your goals, documents, and even YouTube playlists into structured daily tasks.
+> Transform scattered learning resources into structured, actionable roadmaps with the power of AI
 
-## 🚀 Key Features
+Planner is an intelligent learning orchestration engine that eliminates "tutorial hell" by converting unstructured educational content—YouTube playlists, PDFs, course materials, or simple learning goals—into personalized, day-by-day learning roadmaps. Built with cutting-edge AI technology, Planner serves as both your curriculum designer and personal tutor.
 
-- **AI-Generated Plans**: Simply describe what you want to learn, and our AI creates a comprehensive roadmap for you.
-- **YouTube to Plan**: Import any YouTube playlist URL, and Planner will convert each video into a scheduled task with integrated resources.
-- **Interactive Chat**: Chat with an AI assistant that has context of your uploaded documents (PDFs, Images) to refine your learning journey.
-- **Marketplace**: Publish your original learning plans to the marketplace or discover plans created by others.
-- **Plan Management**:
-  - Fork and remix existing plans.
-  - Track progress with a smart task dashboard.
-  - Bulk shift task dates to fit your changing schedule.
-- **Credit System**: A built-in credit system for premium actions like YouTube imports and complex AI interactions.
-- **Privacy First**: Uploaded documents are automatically deleted from storage and database once the AI processing is complete.
+## ✨ Why Planner?
 
-## 🛠 Tech Stack
+**The Problem**: Learners today face information overload. With countless YouTube tutorials, scattered PDFs, and fragmented resources, creating a coherent learning path is overwhelming and time-consuming.
 
-- **Framework**: [Next.js](https://nextjs.org/) (App Router)
-- **Database**: PostgreSQL with [Drizzle ORM](https://orm.drizzle.team/)
-- **Background Processing**: [Inngest](https://www.inngest.com/)
-- **Authentication**: [Auth.js](https://authjs.dev/) (Google Auth)
-- **Storage**: [Supabase Storage](https://supabase.com/storage)
-- **AI**: [Google Gemini API](https://ai.google.dev/)
-- **UI Components**: Radix UI, Lucide Icons, and Tailwind CSS
+**The Solution**: Planner uses advanced AI to automatically structure your learning journey, breaking down complex goals into manageable daily tasks while providing contextual support throughout your learning process.
+
+## 🚀 Core Features
+
+### 📚 Intelligent Roadmap Generation
+- **Text-to-Curriculum**: Describe what you want to learn, and our AI generates a comprehensive, multi-day structured roadmap
+- **YouTube Integration**: Paste any YouTube playlist URL to automatically convert videos into scheduled learning tasks with durations and resources
+- **Document Processing**: Upload PDFs or images, and AI extracts key concepts to build a customized curriculum
+
+### 🏪 Learning Marketplace
+- **Discover Plans**: Browse community-created learning roadmaps across various topics
+- **Publish & Earn**: Share your original plans and help others learn
+- **Fork & Customize**: Clone existing plans and adapt them to your needs
+- **Credit Economy**: Integrated credit system for premium features and marketplace transactions
+
+### 📊 Advanced Task Management
+- **Progress Tracking**: Visual dashboard showing completion status and learning streaks
+- **Smart Scheduling**: Bulk date shifting maintains task dependencies when your schedule changes
+- **Daily Tasks**: Organized view of what to learn each day with clear objectives
+- **Completion Analytics**: Track your learning velocity and consistency
+
+### 🔒 Privacy & Security
+- **Auto-Cleanup**: Uploaded documents are automatically deleted after AI processing
+- **Secure Authentication**: Google OAuth integration for seamless, secure access
+- **Data Protection**: All user data encrypted and securely stored
+
+## 🛠 Technology Stack
+
+### Frontend & UI
+- **[Next.js 14+](https://nextjs.org/)** - React framework with App Router
+- **[Tailwind CSS](https://tailwindcss.com/)** - Utility-first styling
+- **[Radix UI](https://www.radix-ui.com/)** - Accessible component primitives
+- **[Lucide Icons](https://lucide.dev/)** - Beautiful icon set
+
+### Backend & Database
+- **[Convex](https://www.convex.dev/)** - Real-time backend platform
+
+### AI & Processing
+- **[Google Gemini API](https://ai.google.dev/)** - Advanced language model for curriculum generation
+- **[YouTube Data API](https://developers.google.com/youtube)** - Playlist and video metadata extraction
+- **[Inngest](https://www.inngest.com/)** - Event-driven background job processing
+
+### Infrastructure
+- **[Auth.js](https://authjs.dev/)** - Authentication with Google OAuth
 
 ## 🏁 Getting Started
 
 ### Prerequisites
 
-- Node.js 18+
-- A Supabase project
-- A Google Cloud project (for Auth and YouTube API)
-- An Inngest account (or run locally)
-- A Gemini API key
+Before running Planner locally, ensure you have:
 
-### Environment Setup
+- **Node.js 18+** and npm/yarn installed
+- **Convex account** with a project set up
+- **Google Cloud project** with OAuth2 credentials
+- **Google Gemini API key** from [Google AI Studio](https://makersuite.google.com/app/apikey)
+- **YouTube Data API v3** enabled in Google Cloud Console
+- **Inngest account** (free tier available) or local dev server
 
-Create a `.env.local` file in the root directory and add the following:
+### Environment Configuration
+
+Create a `.env.local` file in the project root:
 
 ```env
-# Database
-DATABASE_URL=your_postgresql_url
+# Authentication (Auth.js)
+AUTH_SECRET="generate-with-openssl-rand-base64-32"
+AUTH_GOOGLE_ID="your-google-oauth-client-id"
+AUTH_GOOGLE_SECRET="your-google-oauth-client-secret"
+NEXTAUTH_URL="http://localhost:3000"
 
-# Auth.js
-AUTH_SECRET=your_auth_secret
-AUTH_GOOGLE_ID=your_google_client_id
-AUTH_GOOGLE_SECRET=your_google_client_secret
+# Google AI Services
+GEMINI_API_KEY="your-gemini-api-key"
+YOUTUBE_API_KEY="your-youtube-data-api-key"
 
-# Supabase (Storage)
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+# Background Processing (Inngest)
+INNGEST_EVENT_KEY="your-inngest-event-key"
+INNGEST_SIGNING_KEY="your-inngest-signing-key"
 
-# Google Gemini
-GEMINI_API_KEY=your_gemini_api_key
-
-# YouTube API
-YOUTUBE_API_KEY=your_youtube_api_key
-
-# Inngest
-INNGEST_EVENT_KEY=your_inngest_event_key
-INNGEST_SIGNING_KEY=your_inngest_signing_key
+# Application Settings
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
 ```
 
-### Installation
+### Installation Steps
 
-1. Clone the repository:
-
+1. **Clone the repository**
    ```bash
    git clone https://github.com/the-sukhsingh/processor.git
    cd processor
    ```
 
-2. Install dependencies:
-
+2. **Install dependencies**
    ```bash
    npm install
    ```
 
-3. Run the development server:
+3. **Set up the database**
+   ```bash
+   npm run db:push  # Push schema to database
+   npm run db:studio  # (Optional) Open Drizzle Studio
+   ```
 
+4. **Start the development server**
    ```bash
    npm run dev
    ```
 
-4. Run Inngest dev server (in a separate terminal):
+5. **Launch Inngest dev server** (separate terminal)
    ```bash
-   npm run inngest
+   npx inngest-cli@latest dev
    ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+6. **Access the application**
+   - Frontend: [http://localhost:3000](http://localhost:3000)
+   - Inngest Dashboard: [http://localhost:8288](http://localhost:8288)
 
-## 📜 Project Structure
+## 📁 Project Architecture
 
-- `src/actions`: Server actions for database operations and YouTube integration.
-- `src/app`: Next.js pages and API routes.
-- `src/components`: Reusable UI components.
-- `src/context`: React contexts for global state management (Plans, Chat).
-- `src/inngest`: AI agents and background job definitions.
-- `src/schema`: Database schema definitions using Drizzle.
+```
+processor/
+├── convex/                    # Convex backend functions
+│   ├── schema.ts             # Database schema definitions
+│   ├── chats.ts              # Chat message handlers
+│   ├── plans.ts              # Learning plan operations
+│   └── users.ts              # User management
+|   └── ...                     # Other Convex functions
+│
+├── src/
+│   ├── app/                  # Next.js App Router pages
+│   │   ├── dashboard/       # User dashboard & stats
+│   │   ├── marketplace/     # Plan marketplace
+│   │   ├── conversations/   # AI chat interface
+│   │   └── api/            # API routes & webhooks
+│   │
+│   ├── components/          # Reusable React components
+│   │   ├── chat/           # Chat UI components
+│   │   ├── Plan/           # Plan management UI
+│   │   ├── dashboard/      # Dashboard widgets
+│   │   └── ui/             # shadcn/ui components
+│   │
+│   ├── actions/            # Server actions
+│   │   └── youtube.ts      # YouTube API integration
+│   │
+│   ├── inngest/            # Background jobs
+│   │   ├── ai.ts           # AI processing functions
+│   │   ├── check.ts        # Scheduled checks
+│   │   └── functions.ts    # Job definitions
+│   │
+│   ├── context/            # React context providers
+│   │   ├── ChatContext.tsx # Chat state management
+│   │   └── PlanContext.tsx # Plan state management
+│   │
+│   └── types/              # TypeScript type definitions
+│
+├── public/                 # Static assets
+└── scripts/               # Utility scripts
+```
 
-## ⚖ License
+## 🔧 Key Scripts
 
-This project is licensed under the MIT License.
+```bash
+npm run dev          # Start development server
+npm run build        # Build for production
+npm run start        # Start production server
+npm run lint         # Run ESLint
+npx inngest-cli dev  # Start Inngest dev server
+```
+
+## 🚀 Deployment
+
+### Recommended Platforms
+
+- **Frontend**: [Vercel](https://vercel.com) (optimized for Next.js)
+- **Database**: [Convex](https://www.convex.dev)
+- **Background Jobs**: [Inngest Cloud](https://www.inngest.com)
+
+### Environment Variables in Production
+
+Ensure all environment variables from `.env.local` are configured in your deployment platform, with production URLs and keys.
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- Built with [Google Gemini](https://ai.google.dev/) for advanced AI capabilities
+- UI components from [shadcn/ui](https://ui.shadcn.com/)
+- Icons by [Lucide](https://lucide.dev/)
+
+## 📧 Contact & Support
+
+- **Issues**: [GitHub Issues](https://github.com/the-sukhsingh/processor/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/the-sukhsingh/processor/discussions)
+
+---
+
+<p align="center">Made with ❤️ by <a href="https://github.com/the-sukhsingh">Sukh Singh</a></p>

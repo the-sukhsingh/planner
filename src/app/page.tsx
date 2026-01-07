@@ -1,20 +1,18 @@
 "use client"
+import { useState } from 'react'
 import ChatInterface from '@/components/chat/ChatInterface'
 import List from '@/components/Plan/List'
 import { useAuth } from '@/context/AuthContext'
-import { Rocket, Sparkles, MessageSquare } from 'lucide-react'
+import { Sparkles, MessageSquare, X } from 'lucide-react'
 import { signIn } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog'
+import MinimalStats from '@/components/dashboard/MinimalStats'
+import UtilityBar from '@/components/dashboard/UtilityBar'
 
 const Home = () => {
   const { isAuthenticated, isLoading } = useAuth();
+
+
 
   if (!isAuthenticated) {
     return (
@@ -54,53 +52,54 @@ const Home = () => {
       </div>
     )
   }
-   else {
+  else {
 
     return (
-      <main id="main-content" className='w-full h-[calc(100vh-4rem)] bg-background/50 relative'>
-        <div className='max-w-6xl border-x mx-auto h-full flex flex-col md:flex-row divide-x divide-border overflow-hidden'>
-          {/* Sidebar/Todo Section - Visible on desktop (side) and mobile (main) */}
-          <aside className='w-full md:w-112.5 bg-accent/5 overflow-hidden transition-all duration-300'>
-            <div className='h-full flex flex-col p-2 md:p-3'>
-              <div className="flex items-center gap-2 mb-2 px-4 py-1 md:px-1">
-                <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
-                <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground/80">Today's Focus</h2>
-              </div>
-              <div className="flex-1 overflow-hidden rounded-b-none md:rounded-xl border-x border-t md:border bg-background/40 backdrop-blur-md shadow-2xl shadow-primary/5">
-                <List />
+      <main id="main-content" className='w-full h-[calc(100vh-4rem)] bg-background relative flex flex-col overflow-hidden'>
+        {/* Main Bento Grid Layout */}
+        <div className='flex-1 grid grid-cols-[340px_1fr_450px] gap-4 p-4 overflow-hidden'>
+          {/* Left Sidebar - Stats & Session */}
+          <div className='flex flex-col gap-4 overflow-y-auto'>
+            {/* Stats Card */}
+            <div className='border rounded-2xl p-6'>
+              <h3 className='text-xs font-medium text-muted-foreground mb-4 uppercase tracking-wide'>Stats</h3>
+              <div className='space-y-4'>
+                <MinimalStats />
               </div>
             </div>
-          </aside>
-          {/* Chat Section - Hidden on mobile, flex-1 on desktop */}
-          <section className='hidden md:flex flex-1 min-w-0 bg-background/30 backdrop-blur-sm overflow-hidden'>
-            <div className='h-full w-full flex flex-col p-4 md:p-2'>
-              <ChatInterface />
-            </div>
-          </section>
 
-
-        </div>
-
-        {/* Floating Chat Button for Mobile */}
-        <div className="fixed bottom-6 right-6 md:hidden z-50">
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button size="lg" className="rounded-full h-14 w-14 shadow-2xl p-0 flex items-center justify-center animate-in zoom-in slide-in-from-bottom-10 duration-500">
-                <MessageSquare className="h-6 w-6" />
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="h-[92vh] w-[95vw] max-w-2xl p-0 flex flex-col gap-0 overflow-hidden rounded-2xl border-primary/20 bg-background/95 backdrop-blur-xl">
-              <DialogHeader className="p-4 border-b bg-muted/20">
-                <DialogTitle className="flex items-center gap-2 text-primary font-bold">
-                  <Sparkles className="h-5 w-5" />
-                  AI Assistant
-                </DialogTitle>
-              </DialogHeader>
-              <div className="flex-1 overflow-hidden p-4">
-                <ChatInterface showHeader={false} />
+            {/* Session Timer Card */}
+            <div className='border rounded-2xl p-4 flex-1'>
+              <h3 className='text-xs font-medium text-muted-foreground mb-4 uppercase tracking-wide'>Session</h3>
+              <div className='relative'>
+                <UtilityBar />
               </div>
-            </DialogContent>
-          </Dialog>
+            </div>
+          </div>
+
+          {/* Center - Todo List */}
+          <div className='border rounded-2xl overflow-hidden flex flex-col'>
+            <div className='p-4 border-b'>
+              <h2 className="text-sm font-medium text-muted-foreground tracking-wide uppercase">
+                Todo List
+              </h2>
+            </div>
+            <div className='flex-1 overflow-hidden'>
+              <List />
+            </div>
+          </div>
+
+          {/* Right - Chat Interface */}
+          <div className='border rounded-2xl overflow-hidden flex flex-col relative'>
+            <div className='flex items-center justify-between px-6 py-4 border-b'>
+              <h2 className="text-sm font-medium text-muted-foreground tracking-wide uppercase">
+                Chat
+              </h2>
+            </div>
+            <div className="flex-1 overflow-hidden p-2">
+              <ChatInterface showHeader={true} />
+            </div>
+          </div>
         </div>
       </main>
     )

@@ -3,6 +3,7 @@ import React from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
 import { FileText, User, Bot, Clock } from 'lucide-react'
+import Markdown from 'react-markdown'
 
 interface MessageProps {
     content: string;
@@ -67,12 +68,12 @@ const Message = ({ content, sender, timestamp, avatarUrl, userName, type = 'text
                                     <FileText className="h-5 w-5" />
                                 </div>
                                 <span className="font-medium underline underline-offset-4 decoration-current/30 cursor-pointer">
-                                    {content}
+                                    <Markdown>{content}</Markdown>
                                 </span>
                             </div>
                         ) : (
                             <div className="whitespace-pre-wrap wrap-break-word">
-                                {content}
+                                {<Markdown>{content}</Markdown>}
                             </div>
                         )}
 

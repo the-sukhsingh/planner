@@ -24,8 +24,7 @@ export async function POST(request: Request) {
 
         const formData = await request.formData();
         const question = formData.get('question') as string;
-        const chatIdStr = formData.get('chatId') as string | null;
-        const chatId = chatIdStr ? parseInt(chatIdStr) : null;
+        const chatId = formData.get('chatId') as string | null;
         const files = formData.getAll('file');
 
 
@@ -65,7 +64,7 @@ export async function POST(request: Request) {
             } 
         }
 
-        const deductCreditsAmount = fileCount > 0 ? 10 : 5;
+        const deductCreditsAmount = fileCount > 0 ? 8 : 3;
 
         // Deduct credits
         await convex.mutation(api.users.deductCredits, {
@@ -81,7 +80,7 @@ export async function POST(request: Request) {
             const chatIdTyped = chatId.toString() as Id<"chats">;
             
             // Get existing conversation
-            const existingChat = await convex.query(api.chats.getChat, {
+            const existingChat = await convex.query(api.chats.getChatSimple, {
                 userId: user._id,
                 chatId: chatIdTyped,
             });

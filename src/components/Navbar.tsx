@@ -17,11 +17,13 @@ const Navbar = () => {
   const pathname = usePathname();
 
   const links = [
-    { href: "/marketplace", label: "Marketplace", icon: Globe },
-    { href: "/conversations", label: "Chats", icon: MessageSquare },
-    // { href: "/uploads", label: "Documents", icon: Upload },
-    { href: "/plans", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/pricing", label: "Buy Credits", icon: CreditCard },
+    { href: "/dashboard", label: "Dashboard" },
+    { href: "/conversations", label: "Chats" },
+    { href: "/plans", label: "Plans" },
+    { href: "/leaderboard", label: "Leaderboard" },
+    { href: "/marketplace", label: "Marketplace" },
+    // { href: "/uploads", label: "Documents" },
+    { href: "/pricing", label: "Buy Credits" },
   ];
 
   return (
@@ -55,7 +57,6 @@ const Navbar = () => {
                       : "text-muted-foreground hover:bg-accent hover:text-foreground"
                   )}
                 >
-                  <link.icon className="h-4 w-4" />
                   {link.label}
                 </Link>
               ))}
@@ -88,7 +89,6 @@ const Navbar = () => {
                                   : "hover:bg-accent"
                               )}
                             >
-                              <link.icon className="h-5 w-5" />
                               {link.label}
                             </Link>
                           ))}

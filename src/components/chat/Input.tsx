@@ -68,7 +68,7 @@ const ChatInput = ({ onSubmit, placeholder = "Ask me anything...", disabled, han
                 <div className="flex flex-wrap gap-2 mb-2 px-2">
                     {files.map((file, i) => (
                         <div key={i} className="flex items-center gap-2 bg-primary/5 border border-primary/20 text-primary px-3 py-1.5 rounded-full text-xs font-medium animate-in zoom-in-50 duration-200">
-                            <span className="truncate max-w-[150px]">{file.name}</span>
+                            <span className="truncate max-w-37.5">{file.name}</span>
                             <button onClick={() => removeFile(i)} className="hover:text-primary/70 transition-colors">
                                 <X className="h-3 w-3" />
                             </button>
@@ -83,7 +83,7 @@ const ChatInput = ({ onSubmit, placeholder = "Ask me anything...", disabled, han
                 isFocused ? "border-primary/50 shadow-[0_0_25px_-5px_rgba(var(--primary),0.15)] ring-1 ring-primary/20" : "border-border shadow-sm",
                 disabled && "opacity-60 grayscale cursor-not-allowed"
             )}>
-                <div className="flex items-end p-2 gap-2">
+                <div className="flex items-end p-1 gap-0">
                     <input
                         type="file"
                         multiple={false}
@@ -91,7 +91,6 @@ const ChatInput = ({ onSubmit, placeholder = "Ask me anything...", disabled, han
                         className="hidden"
                         ref={fileInputRef}
                         onChange={handleFileChange}
-                        disabled={disabled}
                     />
 
                     <Button
@@ -100,7 +99,6 @@ const ChatInput = ({ onSubmit, placeholder = "Ask me anything...", disabled, han
                         size="icon"
                         className="h-10 w-10 shrink-0 rounded-xl text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all active:scale-90"
                         onClick={() => fileInputRef.current?.click()}
-                        disabled={disabled}
                     >
                         <Paperclip className="h-5 w-5" />
                     </Button>
@@ -113,8 +111,7 @@ const ChatInput = ({ onSubmit, placeholder = "Ask me anything...", disabled, han
                         placeholder={placeholder}
                         onFocus={() => setIsFocused(true)}
                         onBlur={() => setIsFocused(false)}
-                        className="flex-1 min-h-[44px] max-h-[200px] border-none focus-visible:ring-0 bg-transparent resize-none py-3 text-sm leading-relaxed noscroll"
-                        disabled={disabled}
+                        className="flex-1 min-h-11 max-h-50 border-none focus-visible:ring-0 bg-transparent resize-none py-3 text-sm leading-relaxed noscroll"
                     />
 
                     <div className="flex items-center gap-1 pr-1 pb-1">

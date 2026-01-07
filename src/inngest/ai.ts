@@ -33,6 +33,15 @@ const toolHandlers: Record<string, (args: any) => Promise<any>> = {
                 }))
             });
 
+            const user = await convex.query(api.users.getUserById, { userId: userId as Id<"users"> });
+            if (user) {
+                await convex.mutation(api.users.deductCredits, {
+                    userId: user._id,
+                    amount: 5
+                });
+            }
+
+
             return { success: true, planId, message: `Created plan with ${steps.length} steps` };
         } catch (error: any) {
             return { success: false, error: error.message };
@@ -74,15 +83,14 @@ const toolHandlers: Record<string, (args: any) => Promise<any>> = {
             return { success: false, error: 'Failed to read planners' };
         }
     },
-    shift_planner_steps: async ({ plannerId, stepId, shiftBy }) => {
+    shift_planner_steps: async ({ plannerId, shiftBy }) => {
         try {
-            await convex.mutation(api.ai_tools.shiftStepsByTodo, {
+            await convex.mutation(api.ai_tools.shiftTodosOfPlan, {
                 planId: plannerId as Id<"plans">,
-                todoId: stepId as Id<"todos">,
                 shiftBy
             });
 
-            return { success: true, message: `Shifted steps starting from ${stepId} by ${shiftBy} positions` };
+            return { success: true, message: `Shifted steps by ${shiftBy} positions` };
         } catch (error) {
             return { success: false, error: 'Failed to shift planner steps' };
         }
@@ -249,16 +257,12 @@ const shiftPlannerStepsTool = {
                 type: Type.STRING,
                 description: "The ID of the planner to be modified",
             },
-            stepId: {
-                type: Type.STRING,
-                description: "The ID of the step from which to start shifting",
-            },
             shiftBy: {
                 type: Type.NUMBER,
                 description: "The number of positions to shift the steps by (positive or negative)",
             },
         },
-        required: ["plannerId", "stepId", "shiftBy"],
+        required: ["plannerId","shiftBy"],
     },
 };
 
@@ -402,11 +406,13 @@ Tool Usage Guidelines:
     - Provide realistic estimatedTime in minutes for each step
     - For large number of steps (more than 30), first create a planner with initial steps, then append more using append_steps_to_planner tool
     - Run multiple tool calls if needed to complete the planner
+    - Dont send ids of plans, todos etc in the response until asked
 
     Example structure for a 10-day plan:
     - Step 1: order=1, title="Introduction",
     - Step 2: order=2, title="Core Concepts"
     - And so on...
+
 
 You can use the following tools to answer the user's request:
     create_planner: Create a new learning planner with structured steps.

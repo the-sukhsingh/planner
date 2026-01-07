@@ -15,6 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
 import { createPlanFromYouTubePlaylist } from '@/actions/youtube'
+import { TodoCreationDialog } from './TodoCreationDialog'
 import {
   Plus,
   Trash2,
@@ -370,130 +371,134 @@ const PlanInterface = ({ setId }: { setId: (id: string) => void }) => {
 
 
   if (loading) {
-    return <div className="flex flex-col items-center justify-center min-h-[500px] gap-4">
+    return <div className="flex flex-col items-center justify-center min-h-125 gap-4">
       <Activity className="h-10 w-10 text-primary animate-pulse" />
       <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Loading Dashboard...</p>
     </div>
   }
 
   return (
-    <div className="max-w-7xl mx-auto p-6 md:p-8">
+    <div className="max-w-6xl mx-auto p-6 md:p-0">
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-0">
 
         {/* Sidebar Panel */}
-        <div className="lg:col-span-4 space-y-6">
+        <div className="lg:col-span-4 lg:px-4 space-y-6 border-x h-screen sticky top-16 lg:pt-4">
           <div className="flex flex-col gap-4">
             <div className="space-y-2">
-              <h1 className="text-2xl font-semibold tracking-tight">Plans</h1>
-              <p className="text-sm text-muted-foreground">Manage your learning roadmaps</p>
+              <h1 className="text-3xl font-bold tracking-tight mb-2 ">
+                Plans
+              </h1>
+              <p className="text-muted-foreground text-lg">
+                Manage your learning roadmaps</p>
             </div>
 
-            {/* <div className="flex gap-2"> */}
-            <Dialog open={createPlanOpen} onOpenChange={setCreatePlanOpen}>
-              <DialogTrigger asChild>
-                <Button className="flex-1 h-11 rounded-lg font-medium gap-2">
-                  <Plus className="h-4 w-4" />
-                  New Plan
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-lg">
-                <DialogHeader>
-                  <DialogTitle className="text-xl font-semibold">Create Plan</DialogTitle>
-                  <DialogDescription>Define your learning objectives and timeline.</DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 pt-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="title" className="text-sm font-medium">Title</Label>
-                    <Input id="title" value={newPlan.title} onChange={(e) => setNewPlan({ ...newPlan, title: e.target.value })} placeholder="e.g., Master React Development" />
+            <div className="flex gap-2">
+              <Dialog open={createPlanOpen} onOpenChange={setCreatePlanOpen}>
+                <DialogTrigger asChild>
+                  <Button className="flex-1 h-11 rounded-lg font-medium gap-2">
+                    <Plus className="h-4 w-4" />
+                    New Plan
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-lg">
+                  <DialogHeader>
+                    <DialogTitle className="text-xl font-semibold">Create Plan</DialogTitle>
+                    <DialogDescription>Define your learning objectives and timeline.</DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 pt-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="title" className="text-sm font-medium">Title</Label>
+                      <Input id="title" value={newPlan.title} onChange={(e) => setNewPlan({ ...newPlan, title: e.target.value })} placeholder="e.g., Master React Development" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="goal" className="text-sm font-medium">Goal</Label>
+                      <Input id="goal" value={newPlan.goal} onChange={(e) => setNewPlan({ ...newPlan, goal: e.target.value })} placeholder="What do you want to achieve?" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Difficulty</Label>
+                        <select className="w-full h-10 px-3 border rounded-md bg-background text-sm" value={newPlan.difficulty} onChange={(e) => setNewPlan({ ...newPlan, difficulty: e.target.value })}>
+                          <option value="beginner">Beginner</option>
+                          <option value="intermediate">Intermediate</option>
+                          <option value="advanced">Advanced</option>
+                        </select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Duration (Days)</Label>
+                        <Input type="number" value={newPlan.estimatedDuration} onChange={(e) => setNewPlan({ ...newPlan, estimatedDuration: e.target.value })} placeholder="30" />
+                      </div>
+                    </div>
+                    <Button onClick={handleCreatePlan} className="w-full">Create Plan</Button>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="goal" className="text-sm font-medium">Goal</Label>
-                    <Input id="goal" value={newPlan.goal} onChange={(e) => setNewPlan({ ...newPlan, goal: e.target.value })} placeholder="What do you want to achieve?" />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
+                </DialogContent>
+              </Dialog>
+
+              <Dialog open={youtubeDialogOpen} onOpenChange={setYoutubeDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="flex-1 h-11 rounded-lg font-medium gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M2.5 17a24.12 24.12 0 0 1 0-10 2 2 0 0 1 1.4-1.4 49.56 49.56 0 0 1 16.2 0A2 2 0 0 1 21.5 7a24.12 24.12 0 0 1 0 10 2 2 0 0 1-1.4 1.4 49.55 49.55 0 0 1-16.2 0A2 2 0 0 1 2.5 17"></path><path d="m10 15 5-3-5-3z"></path></svg>
+                    YouTube
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-lg">
+                  <DialogHeader>
+                    <DialogTitle className="text-xl font-semibold">Import from YouTube Playlist</DialogTitle>
+                    <DialogDescription>Create a learning plan from a YouTube playlist. Each video will become a task. It will cost you 10 credits.</DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 pt-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="youtube-url" className="text-sm font-medium">Playlist URL or ID</Label>
+                      <Input
+                        id="youtube-url"
+                        value={youtubeData.playlistUrl}
+                        onChange={(e) => setYoutubeData({ ...youtubeData, playlistUrl: e.target.value })}
+                        placeholder="https://www.youtube.com/playlist?list=..."
+                      />
+                      <p className="text-xs text-muted-foreground">Paste a YouTube playlist URL or playlist ID</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="youtube-title" className="text-sm font-medium">Plan Title (Optional)</Label>
+                      <Input
+                        id="youtube-title"
+                        value={youtubeData.title}
+                        onChange={(e) => setYoutubeData({ ...youtubeData, title: e.target.value })}
+                        placeholder="Leave empty to use playlist name"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="youtube-description" className="text-sm font-medium">Description (Optional)</Label>
+                      <Textarea
+                        id="youtube-description"
+                        value={youtubeData.description}
+                        onChange={(e) => setYoutubeData({ ...youtubeData, description: e.target.value })}
+                        placeholder="Add a custom description"
+                        className="min-h-15"
+                      />
+                    </div>
                     <div className="space-y-2">
                       <Label className="text-sm font-medium">Difficulty</Label>
-                      <select className="w-full h-10 px-3 border rounded-md bg-background text-sm" value={newPlan.difficulty} onChange={(e) => setNewPlan({ ...newPlan, difficulty: e.target.value })}>
+                      <select
+                        className="w-full h-10 px-3 border rounded-md bg-background text-sm"
+                        value={youtubeData.difficulty}
+                        onChange={(e) => setYoutubeData({ ...youtubeData, difficulty: e.target.value })}
+                      >
                         <option value="beginner">Beginner</option>
                         <option value="intermediate">Intermediate</option>
                         <option value="advanced">Advanced</option>
                       </select>
                     </div>
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium">Duration (Days)</Label>
-                      <Input type="number" value={newPlan.estimatedDuration} onChange={(e) => setNewPlan({ ...newPlan, estimatedDuration: e.target.value })} placeholder="30" />
-                    </div>
-                  </div>
-                  <Button onClick={handleCreatePlan} className="w-full">Create Plan</Button>
-                </div>
-              </DialogContent>
-            </Dialog>
-
-            <Dialog open={youtubeDialogOpen} onOpenChange={setYoutubeDialogOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline" className="flex-1 h-11 rounded-lg font-medium gap-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M2.5 17a24.12 24.12 0 0 1 0-10 2 2 0 0 1 1.4-1.4 49.56 49.56 0 0 1 16.2 0A2 2 0 0 1 21.5 7a24.12 24.12 0 0 1 0 10 2 2 0 0 1-1.4 1.4 49.55 49.55 0 0 1-16.2 0A2 2 0 0 1 2.5 17"></path><path d="m10 15 5-3-5-3z"></path></svg>
-                  YouTube
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-lg">
-                <DialogHeader>
-                  <DialogTitle className="text-xl font-semibold">Import from YouTube Playlist</DialogTitle>
-                  <DialogDescription>Create a learning plan from a YouTube playlist. Each video will become a task. It will cost you 10 credits.</DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 pt-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="youtube-url" className="text-sm font-medium">Playlist URL or ID</Label>
-                    <Input
-                      id="youtube-url"
-                      value={youtubeData.playlistUrl}
-                      onChange={(e) => setYoutubeData({ ...youtubeData, playlistUrl: e.target.value })}
-                      placeholder="https://www.youtube.com/playlist?list=..."
-                    />
-                    <p className="text-xs text-muted-foreground">Paste a YouTube playlist URL or playlist ID</p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="youtube-title" className="text-sm font-medium">Plan Title (Optional)</Label>
-                    <Input
-                      id="youtube-title"
-                      value={youtubeData.title}
-                      onChange={(e) => setYoutubeData({ ...youtubeData, title: e.target.value })}
-                      placeholder="Leave empty to use playlist name"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="youtube-description" className="text-sm font-medium">Description (Optional)</Label>
-                    <Textarea
-                      id="youtube-description"
-                      value={youtubeData.description}
-                      onChange={(e) => setYoutubeData({ ...youtubeData, description: e.target.value })}
-                      placeholder="Add a custom description"
-                      className="min-h-[60px]"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">Difficulty</Label>
-                    <select
-                      className="w-full h-10 px-3 border rounded-md bg-background text-sm"
-                      value={youtubeData.difficulty}
-                      onChange={(e) => setYoutubeData({ ...youtubeData, difficulty: e.target.value })}
+                    <Button
+                      onClick={handleYouTubePlaylist}
+                      className="w-full"
+                      disabled={!youtubeData.playlistUrl || youtubeLoading}
                     >
-                      <option value="beginner">Beginner</option>
-                      <option value="intermediate">Intermediate</option>
-                      <option value="advanced">Advanced</option>
-                    </select>
+                      {youtubeLoading ? 'Importing...' : 'Import Playlist'}
+                    </Button>
                   </div>
-                  <Button
-                    onClick={handleYouTubePlaylist}
-                    className="w-full"
-                    disabled={!youtubeData.playlistUrl || youtubeLoading}
-                  >
-                    {youtubeLoading ? 'Importing...' : 'Import Playlist'}
-                  </Button>
-                </div>
-              </DialogContent>
-            </Dialog>
+                </DialogContent>
+              </Dialog>
+            </div>
           </div>
 
           <div className="space-y-3">
@@ -514,7 +519,7 @@ const PlanInterface = ({ setId }: { setId: (id: string) => void }) => {
                       : "hover:border-border/80 hover:shadow-sm"
                   )}
                 >
-                  <CardContent className="p-4">
+                  <CardContent className="px-4">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
                         <h3 className="font-medium text-sm truncate mb-1">{plan.title}</h3>
@@ -549,11 +554,11 @@ const PlanInterface = ({ setId }: { setId: (id: string) => void }) => {
         </div>
 
         {/* Main Content Area */}
-        <div className="lg:col-span-8">
+        <div className="lg:col-span-8 lg:pt-4 lg:px-4 border-r">
           {selectedPlan ? (
             <div className="space-y-6">
               {/* Plan Header */}
-              <div className="border-b pb-6">
+              <div className="border-b pb-4">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
@@ -571,79 +576,19 @@ const PlanInterface = ({ setId }: { setId: (id: string) => void }) => {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3">
-                  <Dialog open={createTodoOpen} onOpenChange={setCreateTodoOpen}>
-                    <DialogTrigger asChild>
-                      <Button className="gap-2">
-                        <Plus className="h-4 w-4" />
-                        Add Task
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-lg">
-                      <DialogHeader>
-                        <DialogTitle className="text-xl font-semibold">New Task</DialogTitle>
-                        <DialogDescription>Add a new task to your plan.</DialogDescription>
-                      </DialogHeader>
-                      <div className="space-y-4 pt-4">
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium">Title</Label>
-                          <Input value={newTodo.title} onChange={(e) => setNewTodo({ ...newTodo, title: e.target.value })} placeholder="What needs to be done?" />
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label className="text-sm font-medium">Priority</Label>
-                            <select className="w-full h-10 px-3 border rounded-md bg-background text-sm" value={newTodo.priority} onChange={(e) => setNewTodo({ ...newTodo, priority: e.target.value })}>
-                              <option value="low">Low</option>
-                              <option value="medium">Medium</option>
-                              <option value="high">High</option>
-                            </select>
-                          </div>
-                          <div className="space-y-2">
-                            <Label className="text-sm font-medium">Due Date</Label>
-                            <Input type="date" value={newTodo.dueDate} onChange={(e) => setNewTodo({ ...newTodo, dueDate: e.target.value })} />
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium">Resources</Label>
-                          <div className="space-y-2">
-                            {newTodo.resources.map((res, index) => (
-                              <div key={index} className="flex gap-2">
-                                <Input
-                                  value={res}
-                                  onChange={(e) => {
-                                    const updated = [...newTodo.resources]
-                                    updated[index] = e.target.value
-                                    setNewTodo({ ...newTodo, resources: updated })
-                                  }}
-                                  placeholder="https://..."
-                                />
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => {
-                                    const updated = [...newTodo.resources]
-                                    updated.splice(index, 1)
-                                    setNewTodo({ ...newTodo, resources: updated })
-                                  }}
-                                  className="h-9 w-9 text-destructive"
-                                >
-                                  <X className="h-3.5 w-3.5" />
-                                </Button>
-                              </div>
-                            ))}
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setNewTodo({ ...newTodo, resources: [...newTodo.resources, ''] })}
-                              className="w-full border-dashed gap-2 text-xs"
-                            >
-                              <Plus className="h-3 w-3" /> Add Resource
-                            </Button>
-                          </div>
-                        </div>
-                        <Button onClick={handleCreateTodo} className="w-full">Create Task</Button>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
+                  <TodoCreationDialog
+                    mode="plan"
+                    planId={selectedPlan._id}
+                    onSuccess={() => {
+                      // Refresh todos after creation
+                      getTodosForPlan(selectedPlan._id)
+                    }}
+                  >
+                    <Button className="gap-2">
+                      <Plus className="h-4 w-4" />
+                      Add Task
+                    </Button>
+                  </TodoCreationDialog>
                   {/* 
                     <Button variant="outline" className="gap-2" onClick={() => setCsvDialog(true)}>
                       <UploadIcon className="h-4 w-4" />
@@ -657,7 +602,7 @@ const PlanInterface = ({ setId }: { setId: (id: string) => void }) => {
                 </div>
               </div>
               {/* Filter Bar */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-4 border-b">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b pr-4">
                 <div className="flex items-center gap-2">
                   <Button variant="ghost" size="icon" onClick={handlePreviousDay} disabled={!filterDate} className="h-8 w-8">
                     <ChevronLeft className="h-4 w-4" />
@@ -692,7 +637,7 @@ const PlanInterface = ({ setId }: { setId: (id: string) => void }) => {
               </div>
 
               {/* Task List */}
-              <div className="space-y-6">
+              <div className="space-y-6 pb-6">
                 {filteredTodos.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-20 text-center">
                     <Circle className="h-12 w-12 text-muted-foreground/20 mb-4" />
@@ -949,7 +894,7 @@ const PlanInterface = ({ setId }: { setId: (id: string) => void }) => {
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-description" className="text-sm font-medium">Description</Label>
-              <Textarea id="edit-description" value={editPlan.description} onChange={(e) => setEditPlan({ ...editPlan, description: e.target.value })} placeholder="What is this plan about?" className="min-h-[80px]" />
+              <Textarea id="edit-description" value={editPlan.description} onChange={(e) => setEditPlan({ ...editPlan, description: e.target.value })} placeholder="What is this plan about?" className="min-h-20" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-goal" className="text-sm font-medium">Goal</Label>

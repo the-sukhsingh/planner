@@ -196,7 +196,7 @@ export const getTodayTasks = query({
             const planTasks = await ctx.db
                 .query("todos")
                 .withIndex("by_plan_status", (q) => q.eq("planId", planId).eq("status", "pending"))
-                .filter((q) => q.lt(q.field("dueDate"), tomorrow.getTime()))
+                .filter((q) => q.lt(q.field("dueDate"), tomorrow.getTime()) && q.gte(q.field("dueDate"), today.getTime()))
                 .collect();
             tasks.push(...planTasks);
         }
@@ -234,3 +234,31 @@ export const shiftStepsByTodo = mutation({
         return null;
     },
 });
+
+
+
+export const shiftTodosOfPlan = mutation({
+    args: {
+        planId: v.id("plans"),
+        shiftBy: v.number(),
+    },
+    returns: v.null(),
+    handler: async (ctx, args) => {
+        // Get all pending todos
+        const todos = await ctx.db
+            .query("todos")
+            .withIndex("by_plan", (q) => q.eq("planId", args.planId))
+            .filter((q) => q.eq(q.field("status"), "pending"))
+            .order("asc")
+            .collect();
+
+        // Shift their Dates
+        for (const todo of todos) {
+            await ctx.db.patch(todo._id, {
+                dueDate: todo.dueDate + args.shiftBy * 24 * 60 * 60 * 1000, // shiftBy days in ms
+                updatedAt: Date.now(),
+            });
+        }
+        return null;
+    }
+})

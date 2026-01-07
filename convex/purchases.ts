@@ -46,15 +46,6 @@ export const createPurchase = mutation({
             purchasedAt: Date.now(),
         });
 
-        // Increment install count on marketplace plan
-        const marketplacePlanRecord = await ctx.db.get(args.planId);
-        if (marketplacePlanRecord) {
-            await ctx.db.patch(args.planId, {
-                installs: marketplacePlanRecord.installs + 1,
-                updatedAt: Date.now(),
-            });
-        }
-
         return purchaseId;
     },
 });

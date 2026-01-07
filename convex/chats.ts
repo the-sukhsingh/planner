@@ -73,6 +73,34 @@ export const getChat = query({
     }
 })
 
+// Get chat without messages (simpler query for API routes)
+export const getChatSimple = query({
+    args: { 
+        userId: v.id("users"),
+        chatId: v.id("chats") 
+    },
+    returns: v.union(
+        v.object({
+            _id: v.id("chats"),
+            _creationTime: v.number(),
+            userId: v.id("users"),
+            title: v.string(),
+            createdAt: v.number(),
+            updatedAt: v.number(),
+        }),
+        v.null()
+    ),
+    handler: async (ctx, args) => {
+        const chat = await ctx.db.get(args.chatId);
+
+        if (!chat || chat.userId !== args.userId) {
+            return null;
+        }
+
+        return chat;
+    }
+})
+
 // List all chats for a user
 export const listUserChats = query({
     args: { userId: v.id("users") },

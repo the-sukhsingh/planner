@@ -59,10 +59,10 @@ export default function MarketplacePage() {
     }
 
     return (
-        <div className="container mx-auto py-10 px-4 max-w-7xl">
+        <div className="container mx-auto max-w-6xl py-10 px-4">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-6">
                 <div>
-                    <h1 className="text-4xl font-bold tracking-tight mb-2 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                    <h1 className="text-4xl font-bold tracking-tight mb-2 ">
                         Planner Marketplace
                     </h1>
                     <p className="text-muted-foreground text-lg">
@@ -71,7 +71,7 @@ export default function MarketplacePage() {
                 </div>
                 <div className="flex w-full md:w-auto gap-3">
                     <div className="relative w-full md:w-64">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-1" />
                         <Input
                             placeholder="Search planners..."
                             className="pl-10 h-11 bg-background/50 backdrop-blur-sm focus-visible:ring-primary/20 border-primary/10"
@@ -138,11 +138,11 @@ export default function MarketplacePage() {
                             <CardTitle className="text-xl group-hover:text-primary transition-colors line-clamp-2">
                                 {mp.snapshot.title}
                             </CardTitle>
-                            <CardDescription className="line-clamp-2 mt-2 min-h-[40px]">
+                            <CardDescription className="line-clamp-2 mt-2 min-h-10">
                                 {mp.snapshot.description || "No description provided."}
                             </CardDescription>
                         </CardHeader>
-                        <CardContent className="flex-grow">
+                        <CardContent className="grow">
                             <div className="flex flex-wrap gap-2 mb-4">
                                 <Badge variant="outline" className="text-[10px] uppercase tracking-wider font-bold opacity-70">
                                     {mp.snapshot.difficulty}

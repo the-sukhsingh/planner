@@ -5,8 +5,9 @@ import Link from 'next/link';
 import { Button } from '../ui/button';
 import { Calendar } from '../ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, Link as LinkIcon, CheckCircle2, Circle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, Link as LinkIcon, CheckCircle2, Circle, Plus } from 'lucide-react';
 import { Todo } from '@/context/PlanContext';
+import { TodoCreationDialog } from './TodoCreationDialog';
 
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
@@ -30,6 +31,7 @@ const TodoItem = memo(({ todo, todoTitle, onToggle }: { todo: Todo; todoTitle?: 
     };
 
     let isCompleted = todo.status === 'completed';
+
 
     return (
         <div
@@ -129,6 +131,8 @@ const List = () => {
     const {user} = useAuth();
 
     const todos = useQuery(api.todos.getTodosBySpecificDate, user ? { userId: user._id ,specificDate: selectedDate.getTime()} : "skip")
+    const createTodayTodo = useMutation(api.todos.createTodoForToday)
+    const createTodoForPlan = useMutation(api.todos.createTodo)
     const changeTodo = useMutation(api.todos.updateTodoStatus)
     
     if (!user) {
@@ -216,6 +220,14 @@ const List = () => {
                             <ChevronRight className='h-4 w-4' />
                         </Button>
                     </div>
+
+                    {/* Add Task Button */}
+                    <TodoCreationDialog mode="today">
+                        <Button variant="default" size="sm">
+                            <Plus className="h-4 w-4 mr-2" />
+                            Add Task
+                        </Button>
+                    </TodoCreationDialog>
                 </div>
 
                 <div className="space-y-2">

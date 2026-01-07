@@ -20,16 +20,53 @@ export const upsertUser = mutation({
         name: args.name,
         imageUrl: args.imageUrl,
       });
+
+      const userStat = await ctx.db
+        .query("userStats")
+        .withIndex("by_user", (q) => q.eq("userId", existing._id))
+        .unique();
+
+      if (!userStat) {
+        const now = Date.now();
+        const today = new Date().toISOString().split('T')[0];
+        await ctx.db.insert("userStats", {
+          userId: existing._id,
+          currentStreak: 0,
+          longestStreak: 0,
+          lastActiveDate: today,
+          totalLearningTimeMs: 0,
+          weeklyLearningTimeMs: 0,
+          monthlyLearningTimeMs: 0,
+          updatedAt: now,
+        });
+      }
+
       return existing._id;
     }
 
-    return await ctx.db.insert("users", {
+    const userId = await ctx.db.insert("users", {
       email: args.email,
       name: args.name,
       imageUrl: args.imageUrl,
       createdAt: Date.now(),
       credits: 50
     });
+
+    // Initialize user stats for new users
+    const now = Date.now();
+    const today = new Date().toISOString().split('T')[0];
+    await ctx.db.insert("userStats", {
+      userId: userId,
+      currentStreak: 0,
+      longestStreak: 0,
+      lastActiveDate: today,
+      totalLearningTimeMs: 0,
+      weeklyLearningTimeMs: 0,
+      monthlyLearningTimeMs: 0,
+      updatedAt: now,
+    });
+
+    return userId;
   },
 });
 
@@ -53,6 +90,8 @@ export const getUserByEmail = query({
       .query("users")
       .withIndex("by_email", (q) => q.eq("email", args.email))
       .first();
+
+      
   },
 });
 
@@ -138,10 +177,7 @@ export const deductCredits = mutation({
     if (!user) {
       throw new Error("User not found");
     }
-    if (user.credits < args.amount) {
-      throw new Error("Insufficient credits");
-    }
-    await ctx.db.patch(args.userId, { credits: user.credits - args.amount });
+    await ctx.db.patch(args.userId, { credits: Math.max(0, user.credits - args.amount) });
     return null;
   },
 });

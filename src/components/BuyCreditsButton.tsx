@@ -7,12 +7,11 @@ import { Rocket, Loader2 } from "lucide-react";
 
 interface BuyCreditsButtonProps {
     productId: string;
-    credits: number;
     price: string;
     variant?: "default" | "outline" | "secondary" | "ghost" | "link" | "destructive";
 }
 
-export const BuyCreditsButton = ({ productId, credits, price, variant = "default" }: BuyCreditsButtonProps) => {
+export const BuyCreditsButton = ({ productId, price, variant = "default" }: BuyCreditsButtonProps) => {
     const { user, isAuthenticated } = useAuth();
     const [isLoading, setIsLoading] = useState(false);
 
@@ -33,7 +32,6 @@ export const BuyCreditsButton = ({ productId, credits, price, variant = "default
                     prodID: productId,
                     userEmail: user?.email || "test@example.com",
                     userName: user?.name || "test",
-                    credits: credits,
                 }),
             });
             console.log("Checkout response status:", response);
