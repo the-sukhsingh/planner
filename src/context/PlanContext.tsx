@@ -8,509 +8,240 @@ import React, {
     useCallback,
     useMemo,
 } from 'react';
+import { useQuery, useMutation } from 'convex/react';
+import { api } from '../../convex/_generated/api';
+import { Id } from '../../convex/_generated/dataModel';
+import { useAuth } from './AuthContext';
 
 // ========= Types =========
 export interface Plan {
-    id: number;
-    userId: number;
+    _id: Id<"plans">;
+    userId: Id<"users">;
     title: string;
-    description: string | null;
-    goal: string;
-    difficulty: string | null;
-    estimatedDuration: number | null;
-    status: string;
-    progress: number;
-    createdAt: Date;
-    updatedAt: Date;
+    description?: string;
+    difficulty: "easy" | "medium" | "hard";
+    estimatedDuration?: number;
+    status: "draft" | "active" | "completed" | "archived";
+    isForked: boolean;
+    createdAt: number;
+    updatedAt: number;
+    progress?: number;
 }
 
 export interface Todo {
-    id: number;
-    planId: number;
+    _id: Id<"todos">;
+    planId: Id<"plans">;
     title: string;
-    description: string | null;
+    description?: string;
     status: string;
-    priority: string;
-    dueDate: Date | null;
-    estimatedTime: number | null;
-    resources?: string[] | null;
+    priority?: "low" | "medium" | "high";
+    dueDate: number;
+    completedAt?: number;
+    estimatedTime?: number;
+    resources?: string[];
     order: number;
-    createdAt: Date;
-    updatedAt: Date;
+    createdAt: number;
+    updatedAt: number;
 }
 
 interface PlanContextType {
     plans: Plan[];
-    todos: Record<number, Todo[]>;
+    todos: Record<string, Todo[]>;
     todayTodos: Todo[];
     loading: boolean;
     error: string | null;
-    fetchPlans: (refresh?: boolean) => Promise<void>;
-    fetchTodos: (planId: number, refresh?: boolean) => Promise<void>;
-    fetchTodosByDate: (date: Date | string) => Todo[];
-    createPlan: (data: Partial<Plan>) => Promise<Plan | null>;
-    updatePlan: (planId: number, data: Partial<Plan>) => Promise<Plan | null>;
-    deletePlan: (planId: number) => Promise<boolean>;
-    createTodo: (planId: number, data: Partial<Todo>) => Promise<Todo | null>;
-    updateTodo: (todoId: number, data: Partial<Todo>) => Promise<Todo | null>;
-    deleteTodo: (todoId: number) => Promise<boolean>;
-    shiftPendingTodos: (days: number, planId?: number) => Promise<boolean>;
-    getTodosForPlan: (planId: number) => Todo[];
-    clearCache: () => void;
+    createPlan: (data: any) => Promise<Id<"plans"> | null>;
+    updatePlan: (planId: Id<"plans">, data: any) => Promise<void>;
+    deletePlan: (planId: Id<"plans">) => Promise<void>;
+    createTodo: (planId: Id<"plans">, data: any) => Promise<Id<"todos"> | null>;
+    updateTodo: (todoId: Id<"todos">, data: any) => Promise<void>;
+    deleteTodo: (todoId: Id<"todos">) => Promise<void>;
+    getTodosForPlan: (planId: Id<"plans">) => Todo[];
+    shiftPendingTodos: (days: number, planId?: Id<"plans">) => Promise<void>;
+    fetchPlans: () => Promise<void>;
 }
 
 const PlanContext = createContext<PlanContextType | undefined>(undefined);
 
 // ========= Provider =========
 export function PlanProvider({ children }: { children: React.ReactNode }) {
-    const [plans, setPlans] = useState<Plan[]>([]);
-    const [todos, setTodos] = useState<Record<number, Todo[]>>({});
-    const [todayTodos, setTodayTodos] = useState<Todo[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const { user } = useAuth();
 
-    // ========= Get Todos for Plan ID =========
+    // Convex hooks
+    const convexPlans = useQuery(api.plans.listUserPlans, user ? { userId: user._id } : "skip");
+    const allUserTodos = useQuery(api.todos.listAllUserTodos, user ? { userId: user._id } : "skip");
 
-    const getTodosForPlan = useCallback((planId: number): Todo[] => {
-        return todos[planId] || [];
-    }, [todos]);
+    const createPlanMutation = useMutation(api.plans.createPlan);
+    const updatePlanMutation = useMutation(api.plans.updatePlan);
+    const deletePlanMutation = useMutation(api.plans.deletePlan);
+    const createTodoMutation = useMutation(api.todos.createTodo);
+    const updateTodoMutation = useMutation(api.todos.updateTodo);
+    const deleteTodoMutation = useMutation(api.todos.deleteTodo);
+    const shiftPendingTodosMutation = useMutation(api.todos.shiftPendingTodos);
 
+    const todosByPlan = useMemo(() => {
+        const mapping: Record<string, Todo[]> = {};
+        if (!allUserTodos) return mapping;
 
+        allUserTodos.forEach((todo: any) => {
+            const pid = todo.planId.toString();
+            if (!mapping[pid]) mapping[pid] = [];
+            mapping[pid].push(todo as Todo);
+        });
 
+        // Sort each plan's todos by order
+        Object.values(mapping).forEach(list => {
+            list.sort((a, b) => a.order - b.order);
+        });
 
-    // ========= Derived Today-Todos =========
-    useEffect(() => {
+        return mapping;
+    }, [allUserTodos]);
+
+    const plans = useMemo(() => {
+        if (!convexPlans) return [];
+        return convexPlans.map(p => {
+            const planTodos = todosByPlan[p._id.toString()] || [];
+            const total = planTodos.length;
+            const completed = planTodos.filter(t => t.status === "completed").length;
+            const progress = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+            return {
+                ...p,
+                progress
+            } as Plan;
+        });
+    }, [convexPlans, todosByPlan]);
+
+    const getTodosForPlan = useCallback((planId: Id<"plans">): Todo[] => {
+        return todosByPlan[planId.toString()] || [];
+    }, [todosByPlan]);
+
+    const todayTodos = useMemo(() => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const list: Todo[] = [];
-        Object.values(todos).forEach(todoList => {
-            todoList.forEach(todo => {
-                if (!todo.dueDate) return;
-                const d = new Date(todo.dueDate);
-                d.setHours(0, 0, 0, 0);
-                if (d.getTime() === today.getTime()) list.push(todo);
-            });
+        if (!allUserTodos) return list;
+
+        allUserTodos.forEach((todo: any) => {
+            const d = new Date(todo.dueDate);
+            d.setHours(0, 0, 0, 0);
+            if (d.getTime() === today.getTime()) list.push(todo as Todo);
         });
-        setTodayTodos(list);
-    }, [todos]);
+        return list;
+    }, [allUserTodos]);
 
-    // ========= Fetch Plans =========
-    const fetchPlans = useCallback(async (refresh = false) => {
-        setLoading(true);
-        setError(null);
-
+    const createPlan = async (data: any) => {
+        if (!user) return null;
         try {
-            const res = await fetch('/api/plans');
-            if (!res.ok) throw new Error('Failed to fetch plans');
-
-            const { plans: fetched = [] } = await res.json();
-            setPlans(fetched);
-        } catch (err) {
-            setError((err as Error).message);
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
-    // ========= Fetch Todos =========
-    const fetchTodos = useCallback(async (planId: number, refresh = false) => {
-        setLoading(true);
-        setError(null);
-
-        try {
-            const res = await fetch(`/api/todos?planId=${planId}`);
-            if (!res.ok) throw new Error('Failed to fetch todos');
-
-            const { todos: fetched = [] } = await res.json();
-            setTodos(prev => ({ ...prev, [planId]: fetched }));
-        } catch (err) {
-            setError((err as Error).message);
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
-    // ========= Fetch Todos by Date =========
-    const fetchTodosByDate = useCallback((date: Date | string): Todo[] => {
-        const targetDate = typeof date === 'string' ? new Date(date) : date;
-        targetDate.setHours(0, 0, 0, 0);
-
-        const filtered: Todo[] = [];
-        Object.values(todos).forEach(todoList => {
-            todoList.forEach(todo => {
-                if (!todo.dueDate) return;
-                const todoDate = new Date(todo.dueDate);
-                todoDate.setHours(0, 0, 0, 0);
-                if (todoDate.getTime() === targetDate.getTime()) {
-                    filtered.push(todo);
-                }
+            return await createPlanMutation({
+                userId: user._id,
+                title: data.title,
+                description: data.description,
+                difficulty: data.difficulty || "medium",
+                estimatedDuration: data.estimatedDuration,
+                status: data.status || "active",
             });
-        });
-
-        return filtered;
-    }, [todos]);
-
-    // ========= CRUD =========
-    const createPlan = async (data: Partial<Plan>) => {
-        // Optimistic update: Create temporary plan with negative ID
-        const tempId = -Date.now();
-        const optimisticPlan: Plan = {
-            id: tempId,
-            userId: 0,
-            title: data.title || '',
-            description: data.description || null,
-            goal: data.goal || '',
-            difficulty: data.difficulty || 'intermediate',
-            estimatedDuration: data.estimatedDuration || null,
-            status: data.status || 'active',
-            progress: 0,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-        };
-        
-        setPlans(prev => [optimisticPlan, ...prev]);
-
-        try {
-            const res = await fetch('/api/plans', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data),
-            });
-            if (!res.ok) throw new Error('Failed to create plan');
-
-            const { plan } = await res.json();
-            // Replace optimistic plan with real one
-            setPlans(prev => prev.map(p => p.id === tempId ? plan : p));
-            return plan;
         } catch (e) {
-            // Rollback: Remove optimistic plan
-            setPlans(prev => prev.filter(p => p.id !== tempId));
-            setError((e as Error).message);
+            console.error(e);
             return null;
         }
     };
 
-    const updatePlan = async (planId: number, data: Partial<Plan>) => {
-        // Optimistic update: Store previous state for rollback
-        const previousPlan = plans.find(p => p.id === planId);
-        if (!previousPlan) return null;
-        
-        const optimisticPlan = { ...previousPlan, ...data, updatedAt: new Date() };
-        setPlans(prev => prev.map(p => (p.id === planId ? optimisticPlan : p)));
-
-        try {
-            const res = await fetch(`/api/plans/${planId}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data),
-            });
-            if (!res.ok) throw new Error('Failed to update plan');
-
-            const { plan } = await res.json();
-            setPlans(prev => prev.map(p => (p.id === planId ? plan : p)));
-            return plan;
-        } catch (e) {
-            // Rollback: Restore previous plan
-            setPlans(prev => prev.map(p => (p.id === planId ? previousPlan : p)));
-            setError((e as Error).message);
-            return null;
-        }
-    };
-
-    const deletePlan = async (planId: number) => {
-        // Optimistic delete: Store previous state for rollback
-        const previousPlan = plans.find(p => p.id === planId);
-        const previousTodos = todos[planId];
-        
-        setPlans(prev => prev.filter(p => p.id !== planId));
-        setTodos(prev => {
-            const clone = { ...prev };
-            delete clone[planId];
-            return clone;
-        });
-
-        try {
-            const res = await fetch(`/api/plans/${planId}`, { method: 'DELETE' });
-            if (!res.ok) throw new Error('Failed to delete plan');
-            return true;
-        } catch (e) {
-            // Rollback: Restore plan and todos
-            if (previousPlan) {
-                setPlans(prev => [...prev, previousPlan]);
-            }
-            if (previousTodos) {
-                setTodos(prev => ({ ...prev, [planId]: previousTodos }));
-            }
-            setError((e as Error).message);
-            return false;
-        }
-    };
-
-    const createTodo = async (planId: number, data: Partial<Todo>) => {
-        // Optimistic update: Create temporary todo with negative ID
-        const tempId = -Date.now();
-        const optimisticTodo: Todo = {
-            id: tempId,
+    const updatePlan = async (planId: Id<"plans">, data: any) => {
+        if (!user) return;
+        await updatePlanMutation({
+            userId: user._id,
             planId,
-            title: data.title || '',
-            description: data.description || null,
-            status: data.status || 'pending',
-            priority: data.priority || 'medium',
-            dueDate: data.dueDate || null,
-            estimatedTime: data.estimatedTime || null,
-            order: data.order || 0,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-        };
-        
-        setTodos(prev => ({
-            ...prev,
-            [planId]: [...(prev[planId] ?? []), optimisticTodo],
-        }));
+            ...data
+        });
+    };
 
+    const deletePlan = async (planId: Id<"plans">) => {
+        if (!user) return;
+        await deletePlanMutation({
+            userId: user._id,
+            planId
+        });
+    };
+
+    const createTodo = async (planId: Id<"plans">, data: any) => {
+        if (!user) return null;
         try {
-            const res = await fetch('/api/todos', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ...data, planId }),
+            return await createTodoMutation({
+                planId,
+                title: data.title,
+                description: data.description,
+                order: data.order || 0,
+                priority: data.priority,
+                status: data.status || "pending",
+                dueDate: data.dueDate ? new Date(data.dueDate).getTime() : Date.now(),
+                estimatedTime: data.estimatedTime,
+                resources: data.resources,
             });
-            if (!res.ok) throw new Error('Failed to create todo');
-
-            const { todo } = await res.json();
-            // Replace optimistic todo with real one
-            setTodos(prev => ({
-                ...prev,
-                [planId]: prev[planId].map(t => t.id === tempId ? todo : t),
-            }));
-            return todo;
         } catch (e) {
-            // Rollback: Remove optimistic todo
-            setTodos(prev => ({
-                ...prev,
-                [planId]: prev[planId].filter(t => t.id !== tempId),
-            }));
-            setError((e as Error).message);
+            console.error(e);
             return null;
         }
     };
 
-    const updateTodo = async (todoId: number, data: Partial<Todo>) => {
-        // Optimistic update: Find and store previous state
-        let previousTodo: Todo | undefined;
-        let planId: number | undefined;
-        
-        for (const [pid, todoList] of Object.entries(todos)) {
-            const found = todoList.find(t => t.id === todoId);
-            if (found) {
-                previousTodo = found;
-                planId = parseInt(pid);
-                break;
-            }
-        }
-        
-        if (!previousTodo || planId === undefined) return null;
-        
-        const optimisticTodo = { ...previousTodo, ...data, updatedAt: new Date() };
-        setTodos(prev => ({
-            ...prev,
-            [planId]: prev[planId].map(t => (t.id === todoId ? optimisticTodo : t)),
-        }));
-
-        try {
-            const res = await fetch(`/api/todos/${todoId}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data),
-            });
-            if (!res.ok) throw new Error('Failed to update todo');
-
-            const { todo } = await res.json();
-            setTodos(prev => ({
-                ...prev,
-                [todo.planId]: prev[todo.planId].map(t => (t.id === todoId ? todo : t)),
-            }));
-            return todo;
-        } catch (e) {
-            // Rollback: Restore previous todo
-            setTodos(prev => ({
-                ...prev,
-                [planId]: prev[planId].map(t => (t.id === todoId ? previousTodo : t)),
-            }));
-            setError((e as Error).message);
-            return null;
-        }
-    };
-
-    const deleteTodo = async (todoId: number) => {
-        // Optimistic delete: Find and store previous state
-        let previousTodo: Todo | undefined;
-        let planId: number | undefined;
-        
-        for (const [pid, todoList] of Object.entries(todos)) {
-            const found = todoList.find(t => t.id === todoId);
-            if (found) {
-                previousTodo = found;
-                planId = parseInt(pid);
-                break;
-            }
-        }
-        
-        setTodos(prev => {
-            const clone = { ...prev };
-            Object.keys(clone).forEach(pid => {
-                clone[+pid] = clone[+pid].filter(t => t.id !== todoId);
-            });
-            return clone;
+    const updateTodo = async (todoId: Id<"todos">, data: any) => {
+        if (!user) return;
+        await updateTodoMutation({
+            userId: user._id,
+            todoId,
+            ...data,
+            dueDate: data.dueDate ? new Date(data.dueDate).getTime() : undefined
         });
-
-        try {
-            const res = await fetch(`/api/todos/${todoId}`, { method: 'DELETE' });
-            if (!res.ok) throw new Error('Failed to delete todo');
-            return true;
-        } catch (e) {
-            // Rollback: Restore todo
-            if (previousTodo && planId !== undefined) {
-                setTodos(prev => ({
-                    ...prev,
-                    [planId]: [...(prev[planId] ?? []), previousTodo],
-                }));
-            }
-            setError((e as Error).message);
-            return false;
-        }
     };
 
-    const shiftPendingTodos = async (days: number, planId?: number) => {
-        // Find all pending todos with due dates
-        const todosToShift: { todo: Todo; planId: number }[] = [];
-        const previousTodos: Record<number, Todo[]> = {};
-        
-        if (planId !== undefined) {
-            // Shift todos for specific plan
-            const planTodos = todos[planId] || [];
-            previousTodos[planId] = [...planTodos];
-            planTodos.forEach(todo => {
-                if (todo.status !== 'completed' && todo.dueDate) {
-                    todosToShift.push({ todo, planId });
-                }
-            });
-        } else {
-            // Shift all pending todos across all plans
-            Object.entries(todos).forEach(([pid, todoList]) => {
-                const numPlanId = parseInt(pid);
-                previousTodos[numPlanId] = [...todoList];
-                todoList.forEach(todo => {
-                    if (todo.status !== 'completed' && todo.dueDate) {
-                        todosToShift.push({ todo, planId: numPlanId });
-                    }
-                });
-            });
-        }
-
-        if (todosToShift.length === 0) {
-            return true; // Nothing to shift
-        }
-
-        // Optimistic update: shift dates locally
-        setTodos(prev => {
-            const newTodos = { ...prev };
-            todosToShift.forEach(({ todo, planId: pid }) => {
-                newTodos[pid] = newTodos[pid].map(t => {
-                    if (t.id === todo.id && t.dueDate) {
-                        const newDate = new Date(t.dueDate);
-                        newDate.setDate(newDate.getDate() + days);
-                        return { ...t, dueDate: newDate, updatedAt: new Date() };
-                    }
-                    return t;
-                });
-            });
-            return newTodos;
+    const deleteTodo = async (todoId: Id<"todos">) => {
+        if (!user) return;
+        await deleteTodoMutation({
+            userId: user._id,
+            todoId
         });
+    };
 
+    const shiftPendingTodos = async (days: number, planId?: Id<"plans">) => {
+        if (!user) return;
         try {
-            // Call bulk-shift endpoint
-            const res = await fetch('/api/todos/shift', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ days, planId }),
+            await shiftPendingTodosMutation({
+                userId: user._id,
+                days,
+                planId
             });
-
-            if (!res.ok) throw new Error('Failed to shift todos');
-
-            const { todos: updated = [] } = await res.json();
-
-            // Merge updated todos into local state
-            setTodos(prev => {
-                const next = { ...prev };
-                updated.forEach((t: any) => {
-                    const pid = t.planId;
-                    if (!next[pid]) return;
-                    next[pid] = next[pid].map(existing => (existing.id === t.id ? { ...existing, ...t } : existing));
-                });
-                return next;
-            });
-
-            return true;
         } catch (e) {
-            // Rollback: restore previous todos
-            setTodos(previousTodos);
-            setError((e as Error).message);
-            return false;
+            console.error(e);
         }
     };
 
-    // ========= Clear Cache =========
-    const clearCache = () => {
-        // No-op: cache functionality removed
+    const fetchPlans = async () => {
+        // Plans are automatically synced by Convex
     };
-
-    // ========= Initialize on Mount =========
-    useEffect(() => {
-        // Fetch fresh data on mount
-        fetchPlans(true);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
-
-    // Fetch todos for all plans when plans change
-    useEffect(() => {
-        if (plans.length > 0) {
-            plans.forEach(plan => {
-                // Check if we already have todos for this plan
-                if (!todos[plan.id]) {
-                    fetchTodos(plan.id);
-                }
-            });
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [plans]);
 
     const value = useMemo(
         () => ({
             plans,
-            todos,
+            todos: todosByPlan,
             todayTodos,
-            loading,
-            error,
-            fetchPlans,
-            fetchTodos,
-            fetchTodosByDate,
+            loading: convexPlans === undefined || allUserTodos === undefined,
+            error: null,
             createPlan,
             updatePlan,
             deletePlan,
             createTodo,
             updateTodo,
             deleteTodo,
-            shiftPendingTodos,
             getTodosForPlan,
-            clearCache,
+            shiftPendingTodos,
+            fetchPlans,
         }),
-        [plans, todos, todayTodos, loading, error, fetchPlans, fetchTodos, fetchTodosByDate, createPlan, updatePlan, deletePlan, createTodo, updateTodo, deleteTodo, shiftPendingTodos, clearCache]
+        [plans, todosByPlan, todayTodos, convexPlans, allUserTodos, user]
     );
 
     return <PlanContext.Provider value={value}>{children}</PlanContext.Provider>;
 }
 
-// ========= Hook =========
 export const usePlan = () => {
     const ctx = useContext(PlanContext);
     if (!ctx) throw new Error('usePlan must be used within PlanProvider');

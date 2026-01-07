@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { useChat, Conversation } from '@/context/ChatContext'
+import { Id } from '../../../convex/_generated/dataModel'
 
 const ConversationsPage = () => {
   const { conversations, selectedConversationId, setSelectedConversationId, loading } = useChat();
@@ -21,7 +22,7 @@ const ConversationsPage = () => {
   const [isMobileChatOpen, setIsMobileChatOpen] = useState(false);
 
   const selectedConversation = useMemo(() =>
-    conversations.find(c => c.id === selectedConversationId) || null,
+    conversations.find(c => c._id === selectedConversationId) || null,
     [conversations, selectedConversationId]
   );
 
@@ -32,7 +33,7 @@ const ConversationsPage = () => {
     [conversations, searchQuery]
   );
 
-  const handleSelectConversation = (id: number) => {
+  const handleSelectConversation = (id: Id<"chats">) => {
     setSelectedConversationId(id);
     // On mobile, open the dialog
     if (window.innerWidth < 768) {
@@ -85,18 +86,18 @@ const ConversationsPage = () => {
           ) : (
             filteredConversations.map((c: Conversation) => (
               <div
-                key={c.id}
+                key={c._id}
                 className={cn(
                   "group relative p-4 rounded-2xl cursor-pointer transition-all duration-300 flex items-start gap-4 mb-2 border",
-                  selectedConversationId === c.id
+                  selectedConversationId === c._id
                     ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 border-primary"
                     : "bg-background/40 hover:bg-accent/50 text-foreground border-border/10 hover:border-border/50"
                 )}
-                onClick={() => handleSelectConversation(c.id)}
+                onClick={() => handleSelectConversation(c._id)}
               >
                 <div className={cn(
                   "mt-1 p-2 rounded-xl transition-colors shrink-0",
-                  selectedConversationId === c.id ? "bg-primary-foreground/20" : "bg-primary/5 text-primary group-hover:bg-primary/10"
+                  selectedConversationId === c._id ? "bg-primary-foreground/20" : "bg-primary/5 text-primary group-hover:bg-primary/10"
                 )}>
                   <Hash className="h-4 w-4" />
                 </div>
@@ -105,7 +106,7 @@ const ConversationsPage = () => {
                   <div className="font-bold text-sm truncate leading-tight mb-1">{c.title}</div>
                   <div className={cn(
                     "text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5 opacity-60",
-                    selectedConversationId === c.id ? "text-primary-foreground" : "text-muted-foreground"
+                    selectedConversationId === c._id ? "text-primary-foreground" : "text-muted-foreground"
                   )}>
                     <Clock className="h-2.5 w-2.5" />
                     {new Date(c.updatedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
@@ -114,7 +115,7 @@ const ConversationsPage = () => {
 
                 <ChevronRight className={cn(
                   "h-4 w-4 self-center transition-transform",
-                  selectedConversationId === c.id ? "opacity-100 translate-x-1" : "opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 outline-hidden"
+                  selectedConversationId === c._id ? "opacity-100 translate-x-1" : "opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 outline-hidden"
                 )} />
               </div>
             ))
@@ -189,14 +190,14 @@ const ConversationsPage = () => {
                   <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest mt-1">AI Assistant</p>
                 </div>
               </div>
-              {selectedConversation && <ConversationManager id={selectedConversation.id} />}
+              {selectedConversation && <ConversationManager id={selectedConversation._id} />}
             </div>
           </DialogHeader>
           <div className="flex-1 overflow-hidden p-4">
             <ChatInterface
-              initialChatId={selectedConversation?.id}
+              initialChatId={selectedConversation?._id}
               showHeader={false}
-              key={selectedConversation?.id || 'new'}
+              key={selectedConversation?._id || 'new'}
             />
           </div>
         </DialogContent>

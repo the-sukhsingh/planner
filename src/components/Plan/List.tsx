@@ -1,15 +1,21 @@
 "use client"
 import React, { memo, useCallback, useMemo, useState } from 'react'
 import { cn } from '@/lib/utils';
-import { Todo, usePlan } from '@/context/PlanContext';
 import Link from 'next/link';
 import { Button } from '../ui/button';
 import { Calendar } from '../ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, Link as LinkIcon, CheckCircle2, Circle } from 'lucide-react';
+import { Todo } from '@/context/PlanContext';
 
-const PlanItem = memo(({ plan, planTitle, onToggle }: { plan: Todo; planTitle?: string; onToggle: (id: number) => void }) => {
-    const handleClick = useCallback(() => onToggle(plan.id), [plan.id, onToggle]);
+import { useQuery, useMutation } from "convex/react";
+import { api } from "../../../convex/_generated/api";
+import { Id } from '../../../convex/_generated/dataModel';
+import { useAuth } from '@/context/AuthContext';
+
+
+const TodoItem = memo(({ todo, todoTitle, onToggle }: { todo: Todo; todoTitle?: string; onToggle: (id: Id<"todos">, status:string) => void }) => {
+    const handleClick = useCallback(() => onToggle(todo._id as Id<"todos">, todo.status === 'completed' ? 'pending': 'completed'), [todo._id, onToggle]);
 
     const formatDate = (date: Date | null) => {
         if (!date) return null;
@@ -23,7 +29,7 @@ const PlanItem = memo(({ plan, planTitle, onToggle }: { plan: Todo; planTitle?: 
         return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
     };
 
-    const isCompleted = plan.status === 'completed';
+    let isCompleted = todo.status === 'completed';
 
     return (
         <div
@@ -50,52 +56,44 @@ const PlanItem = memo(({ plan, planTitle, onToggle }: { plan: Todo; planTitle?: 
             <div className='flex-1 flex flex-col gap-1 min-w-0'>
                 <div className='flex items-start justify-between gap-2'>
                     <div className="flex flex-col gap-0.5 flex-1 min-w-0">
-                        {planTitle && (
+                        {todoTitle && (
                             <span className="text-xs text-muted-foreground leading-none">
-                                {planTitle}
+                                {todoTitle}
                             </span>
                         )}
                         <span className={cn(
                             'text-sm font-medium leading-snug',
                             isCompleted && 'line-through text-muted-foreground'
                         )}>
-                            {plan.title}
+                            {todo.title}
                         </span>
                     </div>
                 </div>
 
-                {plan.description && (
+                {todo.description && (
                     <p className="text-xs text-muted-foreground line-clamp-2">
-                        {plan.description}
+                        {todo.description}
                     </p>
                 )}
 
                 <div className='flex flex-wrap items-center gap-2 mt-1 text-xs text-muted-foreground'>
-                    {plan.priority && plan.priority !== 'low' && (
-                        <span className={cn(
-                            "px-2 py-0.5 rounded text-xs font-medium",
-                            plan.priority === 'high'
-                                ? "bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300"
-                                : "bg-yellow-50 text-yellow-700 dark:bg-yellow-950 dark:text-yellow-300"
-                        )}>{plan.priority}</span>
-                    )}
-                    {plan.dueDate && (
+                    {todo.dueDate && (
                         <span className='flex items-center gap-1'>
                             <CalendarIcon className='h-3 w-3' />
-                            {formatDate(plan.dueDate)}
+                            {formatDate(new Date(todo.dueDate))}
                         </span>
                     )}
-                    {plan.estimatedTime && (
+                    {todo.estimatedTime && (
                         <span className='flex items-center gap-1'>
                             <Clock className='h-3 w-3' />
-                            {formatTime(plan.estimatedTime)}
+                            {formatTime(todo.estimatedTime)}
                         </span>
                     )}
                 </div>
 
-                {plan.resources && plan.resources.length > 0 && (
+                {todo.resources && todo.resources.length > 0 && (
                     <div className='mt-2 flex flex-wrap gap-1.5'>
-                        {plan.resources.map((res, index) => {
+                        {todo.resources.map((res, index) => {
                             let hostname = '';
                             try {
                                 hostname = new URL(res).hostname.replace('www.', '');
@@ -123,28 +121,23 @@ const PlanItem = memo(({ plan, planTitle, onToggle }: { plan: Todo; planTitle?: 
     );
 });
 
-PlanItem.displayName = 'PlanItem';
+TodoItem.displayName = 'TodoItem';
 
 const List = () => {
-    const { fetchTodosByDate, updateTodo, plans } = usePlan();
     const [selectedDate, setSelectedDate] = useState<Date>(new Date());
     const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+    const {user} = useAuth();
 
-    const todos = useMemo(() => {
-        return fetchTodosByDate(selectedDate);
-    }, [fetchTodosByDate, selectedDate]);
-
-    const getPlanTitle = useCallback((planId: number) => {
-        return plans.find(p => p.id === planId)?.title;
-    }, [plans]);
-
-    const handleToggle = (id: number) => {
-        const todo = todos.find(t => t.id === id);
-        if (todo) {
-            const newStatus = todo.status === 'completed' ? 'pending' : 'completed';
-            updateTodo(id, { status: newStatus });
-        }
+    const todos = useQuery(api.todos.getTodosBySpecificDate, user ? { userId: user._id ,specificDate: selectedDate.getTime()} : "skip")
+    const changeTodo = useMutation(api.todos.updateTodoStatus)
+    
+    if (!user) {
+        return <div className='flex justify-center items-center h-full'>Loading...</div>
     }
+    const handleToggle = (id: Id<"todos">, status: string) => {
+        changeTodo({status: status, userId: user?._id, todoId: id})        
+    }
+
 
     const handlePreviousDay = () => {
         const newDate = new Date(selectedDate);
@@ -173,12 +166,12 @@ const List = () => {
         });
     };
 
-    const { activePlans, completedPlans } = useMemo(() => ({
-        activePlans: todos.filter(todo => todo.status !== 'completed'),
-        completedPlans: todos.filter(todo => todo.status === 'completed')
+    const { activetodos, completedtodos } = useMemo(() => ({
+        activetodos: todos?.filter((todo:Todo) => todo.status !== 'completed') || [],
+        completedtodos: todos?.filter((todo:Todo) => todo.status === 'completed') || []
     }), [todos]);
 
-    const progress = todos.length > 0 ? (completedPlans.length / todos.length) * 100 : 0;
+    const progress = todos && todos.length > 0 ? (completedtodos.length / todos.length) * 100 : 0;
 
     return (
         <div className='w-full h-full flex flex-col bg-background'>
@@ -241,39 +234,37 @@ const List = () => {
 
             {/* List Body */}
             <div className='flex-1 overflow-y-auto p-4'>
-                {activePlans.length > 0 && (
+                {activetodos.length > 0 && (
                     <div className="mb-6">
                         <div className='text-xs font-medium text-muted-foreground mb-3'>Active Tasks</div>
-                        {activePlans.map(todo => (
-                            <PlanItem
-                                key={todo.id}
-                                plan={todo}
-                                planTitle={getPlanTitle(todo.planId)}
+                        {activetodos.map((todo:Todo) => (
+                            <TodoItem
+                                key={todo._id}
+                                todo={todo}
                                 onToggle={handleToggle}
                             />
                         ))}
                     </div>
                 )}
 
-                {completedPlans.length > 0 && (
+                {completedtodos.length > 0 && (
                     <div>
                         <div className='text-xs font-medium text-muted-foreground mb-3'>Completed</div>
-                        {completedPlans.map(todo => (
-                            <PlanItem
-                                key={todo.id}
-                                plan={todo}
-                                planTitle={getPlanTitle(todo.planId)}
+                        {completedtodos.map((todo:Todo) => (
+                            <TodoItem
+                                key={todo._id}
+                                todo={todo}
                                 onToggle={handleToggle}
                             />
                         ))}
                     </div>
                 )}
 
-                {todos.length === 0 && (
+                {todos && todos.length === 0 && (
                     <div className='flex flex-col items-center justify-center py-16 text-center'>
                         <Circle className="h-12 w-12 text-muted-foreground/20 mb-3" />
                         <h3 className="text-sm font-medium mb-1">No tasks</h3>
-                        <p className='text-xs text-muted-foreground max-w-[200px]'>
+                        <p className='text-xs text-muted-foreground max-w-50'>
                             No tasks scheduled for this day.
                         </p>
                     </div>

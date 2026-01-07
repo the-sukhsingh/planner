@@ -7,6 +7,9 @@ import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useChat } from '@/context/ChatContext'
 import { useAuth } from '@/context/AuthContext'
+import { useQuery } from 'convex/react'
+import { api } from '../../../convex/_generated/api'
+import { Id } from '../../../convex/_generated/dataModel'
 
 interface ChatMessage {
     id: string;
@@ -18,7 +21,7 @@ interface ChatMessage {
 }
 
 interface ChatInterfaceProps {
-    initialChatId?: number | null;
+    initialChatId?: string | null;  // Changed to string to match Convex Id<"chats">
     initialMessages?: ChatMessage[];
     showHeader?: boolean;
     showInput?: boolean;
@@ -27,8 +30,8 @@ interface ChatInterfaceProps {
 
 const ChatInterface = ({ initialChatId = null, initialMessages = [], showHeader = true, showInput = true }: ChatInterfaceProps) => {
     const { data: session } = useSession()
-    const { fetchConversations, setSelectedConversationId } = useChat()
-    const { refreshCredits } = useAuth()
+    const { setSelectedConversationId } = useChat()
+    const { user } = useAuth();
     const [messages, setMessages] = useState<ChatMessage[]>(initialMessages)
     const [isLoading, setIsLoading] = useState(false)
     const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -36,7 +39,27 @@ const ChatInterface = ({ initialChatId = null, initialMessages = [], showHeader 
     const eventSourceRef = useRef<EventSource | null>(null)
     const lastMessageIdRef = useRef<string | null>(null)
     const seenMessageIdsRef = useRef<Set<string>>(new Set())
-    const [chatId, setChatId] = useState<number | null>(initialChatId)
+    const [chatId, setChatId] = useState<string | null>(initialChatId)
+
+    // Fetch messages from Convex when chatId is available
+    const convexMessages = useQuery(
+        api.messages.listChatMessages,
+        chatId && user?._id ? { userId: user._id, chatId: chatId as Id<"chats"> } : "skip"
+    );
+
+    // Sync Convex messages to local state
+    useEffect(() => {
+        if (convexMessages && convexMessages.length > 0) {
+            const formattedMessages: ChatMessage[] = convexMessages.map((msg) => ({
+                id: msg._id,
+                content: msg.content,
+                sender: msg.role === 'user' ? 'user' : 'ai',
+                timestamp: new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                type: 'text',
+            }));
+            setMessages(formattedMessages);
+        }
+    }, [convexMessages]);
 
     const handleNewChat = () => {
         setMessages([])
@@ -57,65 +80,6 @@ const ChatInterface = ({ initialChatId = null, initialMessages = [], showHeader 
         scrollToBottom()
     }, [messages])
 
-    // Set up SSE connection for real-time updates
-    useEffect(() => {
-        if (!session || !chatId) return
-
-        const lastId = lastMessageIdRef.current
-        const params = new URLSearchParams()
-        params.append('chatId', chatId.toString())
-        if (lastId) {
-            params.append('lastMessageId', lastId)
-        }
-        const url = `/api/messages/stream?${params.toString()}`
-
-        const eventSource = new EventSource(url)
-        eventSourceRef.current = eventSource
-
-        eventSource.onmessage = (event) => {
-            try {
-                const newMessage = JSON.parse(event.data)
-
-                if (seenMessageIdsRef.current.has(newMessage.id)) {
-                    return;
-                }
-                seenMessageIdsRef.current.add(newMessage.id);
-
-                setMessages(prev => {
-                    if (prev.some(m => m.id === newMessage.id)) {
-                        return prev;
-                    }
-                    const filtered = prev.filter(m =>
-                        !(m.id.startsWith('temp-') && m.content === newMessage.content && m.sender === newMessage.sender)
-                    );
-                    return [...filtered, newMessage];
-                })
-
-                if (!newMessage.id.startsWith('temp-')) {
-                    lastMessageIdRef.current = newMessage.id;
-                }
-
-                if (newMessage.sender === 'ai') {
-                    setIsLoading(false)
-                }
-            } catch (error) {
-                console.error('Error parsing SSE message:', error)
-            }
-        }
-
-        eventSource.onerror = (error) => {
-            console.error('SSE error:', error)
-            eventSource.close()
-            setIsLoading(false)
-        }
-
-        return () => {
-            if (eventSourceRef.current) {
-                eventSourceRef.current.close()
-                eventSourceRef.current = null
-            }
-        }
-    }, [session, chatId])
 
     const handleSendMessage = async (message: string) => {
         if (!message.trim() && !filesRef.current) return
@@ -159,7 +123,6 @@ const ChatInterface = ({ initialChatId = null, initialMessages = [], showHeader 
             })
 
             const data = await response.json()
-            refreshCredits();
 
             if (!response.ok) {
                 const errorMessage: ChatMessage = {
@@ -173,9 +136,8 @@ const ChatInterface = ({ initialChatId = null, initialMessages = [], showHeader 
             } else {
                 if (data.conversationId && !chatId) {
                     setChatId(data.conversationId)
-                    // Sync with global chat context
-                    fetchConversations(true);
-                    setSelectedConversationId(data.conversationId);
+                    // Sync with global chat context - Convex will auto-update
+                    setSelectedConversationId(data.conversationId as Id<"chats">);
                 }
             }
         } catch (error) {

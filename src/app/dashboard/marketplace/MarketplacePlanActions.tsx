@@ -14,31 +14,33 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { deleteMarketplacePlan, updateMarketplacePlan } from "@/actions/marketplace";
 import { Settings, Trash2, Loader2, CoinsIcon, Globe, Lock } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useMutation } from "convex/react";
+import { api } from "../../../../convex/_generated/api";
 
-export function EditMarketplaceDialog({ mpPlan }: { mpPlan: any }) {
+export function EditMarketplaceDialog({ mpPlan, userId }: { mpPlan: any, userId: any }) {
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [isFree, setIsFree] = useState(mpPlan.isFree);
-    const [price, setPrice] = useState(mpPlan.price.toString());
+    const [price, setPrice] = useState(mpPlan.price?.toString() || "0");
     const [visibility, setVisibility] = useState(mpPlan.visibility);
-    const router = useRouter();
+
+    const updatePlan = useMutation(api.marketplaceplans.updateMarketplacePlan);
 
     const handleUpdate = async () => {
         try {
             setLoading(true);
             const priceInCredits = Math.round(parseFloat(price));
 
-            await updateMarketplacePlan(mpPlan.id, {
+            await updatePlan({
+                planId: mpPlan._id,
+                authorId: userId,
                 isFree,
                 price: isFree ? 0 : priceInCredits,
                 visibility: visibility as 'public' | 'private',
             });
 
             setOpen(false);
-            router.refresh();
         } catch (error) {
             console.error(error);
             alert("Failed to update plan");
@@ -59,7 +61,7 @@ export function EditMarketplaceDialog({ mpPlan }: { mpPlan: any }) {
                 <DialogHeader>
                     <DialogTitle className="text-2xl font-bold">Marketplace Settings</DialogTitle>
                     <DialogDescription>
-                        Update visibility and pricing for "{mpPlan.plan.title}"
+                        Update visibility and pricing for "{mpPlan.snapshot.title}"
                     </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-6 py-4">
@@ -130,17 +132,20 @@ export function EditMarketplaceDialog({ mpPlan }: { mpPlan: any }) {
     );
 }
 
-export function DeleteMarketplaceDialog({ mpId }: { mpId: number }) {
+export function DeleteMarketplaceDialog({ mpId, userId }: { mpId: any, userId: any }) {
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
-    const router = useRouter();
+
+    const deletePlan = useMutation(api.marketplaceplans.deleteMarketplacePlan);
 
     const handleDelete = async () => {
         try {
             setLoading(true);
-            await deleteMarketplacePlan(mpId);
+            await deletePlan({
+                planId: mpId,
+                authorId: userId,
+            });
             setOpen(false);
-            router.refresh();
         } catch (error) {
             console.error(error);
             alert("Failed to delete plan from marketplace");

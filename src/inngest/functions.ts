@@ -1,10 +1,10 @@
 import { inngest } from "./client";
 import generateContent from "./ai";
-import { db } from "@/db";
-import { usersTable, learningPlansTable, todosTable, messagesTable, conversationsTable, uploadsTable } from "@/schema";
-import { eq, and, isNotNull, sql, asc } from "drizzle-orm";
-import { gemini } from "inngest";
-import { createClient } from '@supabase/supabase-js';
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "../../convex/_generated/api";
+import { Id } from "../../convex/_generated/dataModel";
+
+const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 export const helloWorld = inngest.createFunction(
     { id: "hello-world" },
@@ -20,34 +20,20 @@ export const ask = inngest.createFunction(
     { event: "question/asked" },
     async ({ event, step }) => {
         const { question, files, userEmail, conversationId, messageId } = event.data;
+        console.log("Got", question, files, userEmail, conversationId);
         const getUserId = await step.run("get-user-id", async () => {
-            const [user] = await db
-                .select({ id: usersTable.id })
-                .from(usersTable)
-                .where(eq(usersTable.email, userEmail))
-                .limit(1);
+            const user = await convex.query(api.users.getUserByEmail, { email: userEmail });
 
             if (!user) {
                 throw new Error(`User not found with email: ${userEmail}`);
             }
-            return user.id;
+            return user._id;
         });
 
 
-        // Save Files to Supabase Storage and get URLs
+        // Save Files to Convex Storage and get URLs
         const fileUrls = await step.run("save-files", async () => {
             if (!files || files.length === 0) return [];
-
-            const supabase = createClient(
-                process.env.NEXT_PUBLIC_SUPABASE_URL!,
-                process.env.SUPABASE_SERVICE_ROLE_KEY!,
-                {
-                    auth: {
-                        autoRefreshToken: false,
-                        persistSession: false
-                    }
-                }
-            );
 
             const uploadedUrls: string[] = [];
 
@@ -62,50 +48,42 @@ export const ask = inngest.createFunction(
                 }
 
                 try {
-                    // Convert base64 to buffer
+                    // Convert base64 to blob
                     const buffer = Buffer.from(file.data, 'base64');
+                    const blob = new Blob([buffer], { type: file.type });
 
-                    // Generate unique filename
-                    const timestamp = Date.now();
-                    const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-                    const fileName = `${getUserId}/${timestamp}-${sanitizedName}`;
+                    // Generate upload URL from Convex
+                    const uploadUrl = await convex.mutation(api.uploads.generateUploadUrl);
 
-                    // Upload to Supabase Storage
-                    const { data, error } = await supabase.storage
-                        .from('user-files')
-                        .upload(fileName, buffer, {
-                            contentType: file.type,
-                            upsert: false
-                        });
+                    // Upload file to Convex storage
+                    const result = await fetch(uploadUrl, {
+                        method: "POST",
+                        headers: { "Content-Type": file.type },
+                        body: blob,
+                    });
 
-                    if (error) {
-                        console.error(`Error uploading file ${file.name}:`, error);
-                        continue;
-                    }
+                    const { storageId } = await result.json();
 
-                    // Get public URL
-                    const { data: { publicUrl } } = supabase.storage
-                        .from('user-files')
-                        .getPublicUrl(fileName);
-
-                    uploadedUrls.push(publicUrl);
-
-                    // Store upload metadata in database
-                    await db.insert(uploadsTable).values({
-                        userId: getUserId,
-                        conversationId,
+                    // Create upload record in Convex
+                    await convex.mutation(api.uploads.createUpload, {
+                        userId: getUserId as Id<"users">,
+                        chatId: conversationId as Id<"chats">,
                         fileName: file.name,
                         fileType: file.type,
                         fileSize: buffer.length,
-                        fileUrl: publicUrl,
-                        metadata: {
-                            originalName: file.name,
-                            sanitizedName,
-                            uploadPath: fileName
-                        }
+                        storageId,
                     });
 
-                    console.log(`Successfully uploaded ${file.name} to ${publicUrl}`);
+                    // Get file URL from Convex storage
+                    const fileUrl = await convex.query(api.uploads.getFileUrl, {
+                        storageId,
+                    });
+
+                    if (fileUrl) {
+                        uploadedUrls.push(fileUrl);
+                    }
+
+                    console.log(`Successfully uploaded ${file.name} to Convex storage`);
                 } catch (error) {
                     console.error(`Error processing file ${file.name}:`, error);
                 }
@@ -114,12 +92,16 @@ export const ask = inngest.createFunction(
             return uploadedUrls;
         });
 
+        // Get conversation history
         // const history = await step.run("get-conversation-history", async () => {
-        //     const messages = await db
-        //         .select()
-        //         .from(messagesTable)
-        //         .where(eq(messagesTable.conversationId, conversationId))
-        //         .orderBy(asc(messagesTable.createdAt));
+        //     const chatIdTyped = conversationId as Id<"chats">;
+        //     const userIdTyped = getUserId as Id<"users">;
+            
+        //     const messages = await convex.query(api.messages.listChatMessages, {
+        //         userId: userIdTyped,
+        //         chatId: chatIdTyped
+        //     });
+            
         //     return messages.map(msg => ({
         //         role: msg.role,
         //         content: msg.content
@@ -140,11 +122,11 @@ export const ask = inngest.createFunction(
         if (result && result.success && 'output' in result) {
             console.log("Successfully generated planner:", result.output);
 
-            await db.insert(messagesTable).values({
-                conversationId,
-                role: 'assistant',
+            const chatIdTyped = conversationId as Id<"chats">;
+            await convex.mutation(api.messages.createMessage, {
+                chatId: chatIdTyped,
+                role: "assistant",
                 content: String(result.output),
-                metadata: { planGenerated: true },
             });
 
             storeResult = {
@@ -156,11 +138,11 @@ export const ask = inngest.createFunction(
             const error = result && 'error' in result ? result.error : "Failed to generate planner";
             console.error("Failed to generate planner:", error);
 
-            await db.insert(messagesTable).values({
-                conversationId,
-                role: 'assistant',
+            const chatIdTyped = conversationId as Id<"chats">;
+            await convex.mutation(api.messages.createMessage, {
+                chatId: chatIdTyped,
+                role: "assistant",
                 content: `I encountered an error while creating your learning plan: ${String(error)}. Please try again.`,
-                metadata: { error: true },
             });
 
             storeResult = {
@@ -169,28 +151,31 @@ export const ask = inngest.createFunction(
             };
         }
 
-        // Delete the uploaded files
-        // Delete from the storage also
-        const filesd = await db.select().from(uploadsTable).where(eq(uploadsTable.conversationId, conversationId));
-        for (const file of filesd) {
-            const supabase = createClient(
-                process.env.NEXT_PUBLIC_SUPABASE_URL!,
-                process.env.SUPABASE_SERVICE_ROLE_KEY!,
-                {
-                    auth: {
-                        autoRefreshToken: false,
-                        persistSession: false
-                    }
+        // Delete the uploaded files from Convex storage after content generation
+        await step.run("cleanup-files", async () => {
+            if (!files || files.length === 0) return;
+
+            const chatIdTyped = conversationId as Id<"chats">;
+            
+            // Get all uploads for this chat
+            const uploads = await convex.query(api.uploads.getChatUploads, {
+                chatId: chatIdTyped,
+            });
+
+            // Delete each upload
+            for (const upload of uploads) {
+                try {
+                    await convex.mutation(api.uploads.deleteUpload, {
+                        uploadId: upload._id,
+                    });
+                    console.log(`Deleted upload: ${upload.fileName}`);
+                } catch (error) {
+                    console.error(`Error deleting upload ${upload.fileName}:`, error);
                 }
-            );
-            const { error } = await supabase.storage
-            .from('user-files')
-            .remove([file.fileName]);
-            if (error) {
-                console.error(`Error deleting file ${file.fileName} from storage:`, error);
             }
-        }
-        await db.delete(uploadsTable).where(eq(uploadsTable.conversationId, conversationId));
+
+            console.log(`Cleaned up ${uploads.length} uploaded files`);
+        });
 
         return { status: "completed", storeResult };
     },

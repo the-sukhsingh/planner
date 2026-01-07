@@ -8,12 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ModeToggle } from "./theme/ThemeToggle";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { Menu, X, Rocket, LogOut, LayoutDashboard, MessageSquare, Upload, Globe } from "lucide-react";
+import { Menu, X, Rocket, LogOut, LayoutDashboard, MessageSquare, Upload, Globe, CreditCard } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePathname } from "next/navigation";
 
 const Navbar = () => {
-  const { user, credits, isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
   const pathname = usePathname();
 
   const links = [
@@ -21,6 +21,7 @@ const Navbar = () => {
     { href: "/conversations", label: "Chats", icon: MessageSquare },
     // { href: "/uploads", label: "Documents", icon: Upload },
     { href: "/plans", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/pricing", label: "Buy Credits", icon: CreditCard },
   ];
 
   return (
@@ -32,10 +33,10 @@ const Navbar = () => {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2 group">
-            <div className="h-8 w-8 bg-primary rounded-lg flex items-center justify-center ">
-              <Rocket className="h-5 w-5 text-primary-foreground transition-transform group-hover:rotate-12 group-hover:scale-105" />
+            <div className="h-8 w-8 rounded-lg flex items-center justify-center ">
+              <Rocket className="h-5 w-5 text-primary transition-transform group-hover:rotate-12 group-hover:scale-105" />
             </div>
-            <span className="text-xl font-bold tracking-tight bg-clip-text text-transparent bg-linear-to-r from-primary to-primary/60">
+            <span className="text-xl font-bold tracking-tight text-primary">
               Planner
             </span>
           </Link>
@@ -96,7 +97,7 @@ const Navbar = () => {
                         <div className="pt-4 border-t border-primary/10 ">
                           <div className="flex items-center gap-4 mb-4">
                             <Avatar className="h-10 w-10 border-2 border-primary/20">
-                              <AvatarImage src={user?.image || undefined} alt={user?.name || "User"} />
+                              <AvatarImage src={user?.imageUrl || undefined} alt={user?.name || "User"} />
                               <AvatarFallback className="bg-primary/5 text-primary">
                                 {user?.name?.charAt(0).toUpperCase() || "U"}
                               </AvatarFallback>
@@ -106,7 +107,7 @@ const Navbar = () => {
                               <div className="text-xs text-muted-foreground truncate">{user?.email}</div>
                               <div className="mt-1 flex items-center gap-1 text-primary">
                                 <Rocket className="h-3 w-3" />
-                                <span className="text-xs font-bold">{user?.credits ?? credits} Credits</span>
+                                <span className="text-xs font-bold">{user?.credits ?? 0} Credits</span>
                               </div>
                             </div>
                           </div>
@@ -140,7 +141,7 @@ const Navbar = () => {
                     <PopoverTrigger asChild>
                       <Button variant="ghost" size="icon" className="rounded-full hover:bg-transparent ring-primary/20 transition-all hover:ring-4 ">
                         <Avatar className="h-9 w-9 border-2 border-background shadow-sm">
-                          <AvatarImage src={user.image || undefined} />
+                          <AvatarImage src={user.imageUrl || undefined} />
                           <AvatarFallback className="bg-primary/5 text-primary font-bold">
                             {user.name?.charAt(0).toUpperCase() || "U"}
                           </AvatarFallback>
@@ -153,10 +154,19 @@ const Navbar = () => {
                         <p className="text-xs text-muted-foreground mt-2 truncate">{user.email}</p>
                         <div className="mt-4 flex items-center justify-between p-2 rounded-xl bg-accent/50 border">
                           <span className="text-xs font-medium text-muted-foreground">Available Credits</span>
-                          <span className="text-sm font-bold text-primary">{user.credits ?? credits ?? 0}</span>
+                          <span className="text-sm font-bold text-primary">{user.credits ?? 0}</span>
                         </div>
                       </div>
-                      <div className="p-1">
+                      <div className="p-1 space-y-1">
+                        <Link href="/pricing" className="block w-full">
+                          <Button
+                            variant="ghost"
+                            className="w-full justify-start gap-2 hover:bg-primary/10 hover:text-primary transition-colors"
+                          >
+                            <CreditCard className="h-4 w-4" />
+                            Buy Credits
+                          </Button>
+                        </Link>
                         <Button
                           variant="ghost"
                           className="w-full justify-start gap-2 text-destructive hover:text-destructive hover:bg-destructive/10 transition-colors"

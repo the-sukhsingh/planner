@@ -1,15 +1,18 @@
 "use server";
 
-import { db } from "@/db";
-import { learningPlansTable, todosTable, usersTable } from "@/schema";
 import { auth } from "@/auth";
-import { eq } from "drizzle-orm";
+import { fetchMutation, fetchQuery } from "convex/nextjs";
+import { api } from "../../convex/_generated/api";
 
 async function getCurrentUser() {
     const session = await auth();
     if (!session?.user?.email) return null;
-    const users = await db.select().from(usersTable).where(eq(usersTable.email, session.user.email)).limit(1);
-    return users[0] || null;
+    
+    const user = await fetchQuery(api.users.getUserByEmail, { 
+        email: session.user.email 
+    });
+    
+    return user;
 }
 
 interface YouTubeVideo {
@@ -92,7 +95,6 @@ export async function createPlanFromYouTubePlaylist(playlistUrl: string, planDat
 
     if (user.credits < 10) throw new Error("Not enough credits");
 
-
     // Extract playlist ID
     const playlistId = extractPlaylistId(playlistUrl);
     if (!playlistId) {
@@ -106,42 +108,42 @@ export async function createPlanFromYouTubePlaylist(playlistUrl: string, planDat
     }
 
     // Create the learning plan
-    const [plan] = await db.insert(learningPlansTable).values({
-        userId: user.id,
+    const planId = await fetchMutation(api.plans.createPlan, {
+        userId: user._id,
         title: planData.title || videos[0]?.title || "YouTube Playlist",
         description: planData.description || `Learning plan from YouTube playlist with ${videos.length} videos`,
-        goal: `Complete ${videos.length} videos from YouTube playlist`,
-        difficulty: planData.difficulty || 'intermediate',
-        estimatedDuration: videos.length, // One video per day
-        status: 'active',
-        progress: 0,
-    }).returning();
+        difficulty: (planData.difficulty as "easy" | "medium" | "hard") || "medium",
+        estimatedDuration: videos.length,
+        status: "active",
+        isForked: false,
+    });
 
     // Create todos from videos
-    const planStartDate = new Date();
+    const planStartDate = Date.now();
     const todoValues = videos.map((video, index) => {
-        const dueDate = new Date(planStartDate);
-        dueDate.setDate(dueDate.getDate() + index);
+        const dueDate = planStartDate + (index * 24 * 60 * 60 * 1000); // Add days in milliseconds
         return {
-            planId: plan.id,
+            planId: planId,
             title: video.title,
-            description: video.description || null,
+            description: video.description || undefined,
             order: index,
-            priority: 'medium',
-            status: 'pending',
-            estimatedTime: null,
+            priority: "medium" as const,
+            status: "pending",
+            dueDate: dueDate,
+            estimatedTime: undefined,
             resources: [`https://www.youtube.com/watch?v=${video.videoId}`],
-            dueDate,
         };
     });
 
-    await db.insert(todosTable).values(todoValues);
-
+    await fetchMutation(api.todos.createMultipleTodos, {
+        todos: todoValues
+    });
 
     // Deduct 10 credits from user
+    await fetchMutation(api.users.deductCredits, {
+        userId: user._id,
+        amount: 10
+    });
 
-
-    await db.update(usersTable).set({ credits: user.credits - 10 }).where(eq(usersTable.id, user.id));
-
-    return { success: true, planId: plan.id, videosCount: videos.length };
+    return { success: true, planId: planId, videosCount: videos.length };
 }

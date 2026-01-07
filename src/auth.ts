@@ -1,8 +1,9 @@
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
-import { db } from "./db";
-import { usersTable } from "./schema";
-import { eq } from "drizzle-orm";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "../convex/_generated/api";
+
+const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
     providers: [
@@ -16,38 +17,27 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             if (!user.email) return false;
 
             try {
-                // Check if user exists
-                const existingUser = await db
-                    .select()
-                    .from(usersTable)
-                    .where(eq(usersTable.email, user.email))
-                    .limit(1);
-
-                if (existingUser.length === 0) {
-                    // Create new user
-                    await db.insert(usersTable).values({
-                        name: user.name || "Unknown",
-                        email: user.email,
-                        imageUrl: user.image || null,
-                        plan: "free",
-                        credits: 20, // Give 20 credits on signup
-                    });
-                } else {
-                    // Update existing user's last login
-                    await db
-                        .update(usersTable)
-                        .set({ updatedAt: new Date() })
-                        .where(eq(usersTable.email, user.email));
-                }
+                // Upsert user in Convex
+                await convex.mutation(api.users.upsertUser, {
+                    email: user.email,
+                    name: user.name || "Unknown",
+                    imageUrl: user.image || undefined,
+                });
                 return true;
             } catch (error) {
-                console.error("Error saving user to database:", error);
+                console.error("Error saving user to Convex:", error);
                 return false;
             }
         },
         async session({ session, token }) {
-            if (session.user && token.sub) {
-                session.user.id = token.sub;
+            if (session.user && session.user.email) {
+                // Fetch user from Convex to get the user ID and credits
+                const convexUser = await convex.query(api.users.getUserByEmail, {
+                    email: session.user.email,
+                });
+                if (convexUser) {
+                    session.user.id = convexUser._id;
+                }
             }
             return session;
         },

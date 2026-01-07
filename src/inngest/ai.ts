@@ -1,7 +1,9 @@
 import { GoogleGenAI, Type } from '@google/genai';
-import { db } from "@/db";
-import { learningPlansTable, todosTable } from "@/schema";
-import { eq, and, inArray, lt } from "drizzle-orm";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "../../convex/_generated/api";
+import { Id } from "../../convex/_generated/dataModel";
+
+const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 type Step = {
     title: string;
@@ -18,50 +20,20 @@ type Step = {
 const toolHandlers: Record<string, (args: any) => Promise<any>> = {
     create_planner: async ({ userId, title, difficulty, estimatedDuration, startDate, steps }) => {
         try {
-            const [plan] = await db.insert(learningPlansTable).values({
-                userId: parseInt(userId),
+            const planId = await convex.mutation(api.ai_tools.createPlanWithSteps, {
+                userId: userId as Id<"users">,
                 title,
-                goal: `Generate a learning plan to ${title}`,
                 description: `This planner is created to help the user achieve the goal: ${title}`,
-                difficulty: difficulty || 'intermediate',
+                difficulty: (difficulty === 'beginner' ? 'easy' : (difficulty === 'advanced' ? 'hard' : 'medium')) as "easy" | "medium" | "hard",
                 estimatedDuration: estimatedDuration || steps.length,
-                status: 'active',
-                progress: 0,
-            }).returning();
+                startDate: startDate ? new Date(startDate).getTime() : Date.now(),
+                steps: steps.map((s: any) => ({
+                    ...s,
+                    priority: (s.priority || 'medium') as "low" | "medium" | "high"
+                }))
+            });
 
-            if (steps && steps.length > 0) {
-                const planStartDate = startDate ? new Date(startDate) : new Date();
-                const orderToDayMap = new Map<number, number>();
-                let currentDay = 0;
-                let lastOrder = -1;
-                const sortedSteps = [...steps].sort((a, b) => a.order - b.order);
-
-                await db.insert(todosTable).values(
-                    sortedSteps.map(step => {
-                        if (step.order !== lastOrder) {
-                            if (lastOrder !== -1) currentDay++;
-                            lastOrder = step.order;
-                            orderToDayMap.set(step.order, currentDay);
-                        }
-                        const dueDate = new Date(planStartDate);
-                        dueDate.setDate(dueDate.getDate() + (orderToDayMap.get(step.order) ?? 0) + 1);
-
-                        return {
-                            planId: plan.id,
-                            title: step.title,
-                            description: step.description || '',
-                            order: step.order,
-                            priority: step.priority || 'medium',
-                            estimatedTime: step.estimatedTime,
-                            notes: step.notes || '',
-                            resources: step.resources || [],
-                            status: 'pending',
-                            dueDate: dueDate,
-                        };
-                    })
-                );
-            }
-            return { success: true, planId: plan.id, message: `Created plan with ${steps.length} steps` };
+            return { success: true, planId, message: `Created plan with ${steps.length} steps` };
         } catch (error: any) {
             return { success: false, error: error.message };
         }
@@ -89,20 +61,9 @@ const toolHandlers: Record<string, (args: any) => Promise<any>> = {
     },
     read_planners: async ({ userId, includeCompleted = false }) => {
         try {
-            const planners = await db
-                .select({
-                    id: learningPlansTable.id,
-                    title: learningPlansTable.title,
-                    description: learningPlansTable.description,
-                    goal: learningPlansTable.goal,
-                    difficulty: learningPlansTable.difficulty,
-                    estimatedDuration: learningPlansTable.estimatedDuration,
-                    status: learningPlansTable.status,
-                    progress: learningPlansTable.progress,
-                    createdAt: learningPlansTable.createdAt,
-                })
-                .from(learningPlansTable)
-                .where(eq(learningPlansTable.userId, parseInt(userId)));
+            const planners = await convex.query(api.plans.listUserPlans, {
+                userId: userId as Id<"users">
+            });
 
             const filteredPlanners = includeCompleted
                 ? planners
@@ -115,117 +76,52 @@ const toolHandlers: Record<string, (args: any) => Promise<any>> = {
     },
     shift_planner_steps: async ({ plannerId, stepId, shiftBy }) => {
         try {
-            const todos = await db
-                .select()
-                .from(todosTable)
-                .where(eq(todosTable.planId, parseInt(plannerId)))
-                .orderBy(todosTable.order);
+            await convex.mutation(api.ai_tools.shiftStepsByTodo, {
+                planId: plannerId as Id<"plans">,
+                todoId: stepId as Id<"todos">,
+                shiftBy
+            });
 
-            const startIndex = todos.findIndex(t => t.id === parseInt(stepId));
-            if (startIndex === -1) {
-                return { success: false, error: 'Step not found' };
-            }
-
-            const updates = todos.slice(startIndex).map(todo => ({
-                id: todo.id,
-                newOrder: todo.order + shiftBy,
-            }));
-
-            for (const update of updates) {
-                await db.update(todosTable).set({ order: update.newOrder }).where(eq(todosTable.id, update.id));
-            }
-
-            return { success: true, message: `Shifted ${updates.length} steps by ${shiftBy} positions` };
+            return { success: true, message: `Shifted steps starting from ${stepId} by ${shiftBy} positions` };
         } catch (error) {
             return { success: false, error: 'Failed to shift planner steps' };
         }
     },
     edit_planner_steps: async ({ plannerId, steps }) => {
         try {
-            await db
-                .delete(todosTable)
-                .where(
-                    and(
-                        eq(todosTable.planId, parseInt(plannerId)),
-                        eq(todosTable.status, 'pending')
-                    )
-                );
-
-            if (steps && steps.length > 0) {
-                await db.insert(todosTable).values(
-                    steps.map((step: Step) => ({
-                        planId: parseInt(plannerId),
-                        title: step.title,
-                        description: step.description || '',
-                        order: step.order,
-                        priority: step.priority || 'medium',
-                        estimatedTime: step.estimatedTime,
-                        notes: step.notes || '',
-                        resources: step.resources || [],
-                        status: 'pending',
-                    }))
-                );
-            }
+            await convex.mutation(api.ai_tools.editPlanSteps, {
+                planId: plannerId as Id<"plans">,
+                steps: steps.map((s: any) => ({
+                    ...s,
+                    priority: (s.priority || 'medium') as "low" | "medium" | "high"
+                }))
+            });
 
             return { success: true, message: `Updated planner with ${steps.length} steps` };
-        } catch (error) {
-            return { success: false, error: 'Failed to edit planner steps' };
+        } catch (error: any) {
+            return { success: false, error: error.message || 'Failed to edit planner steps' };
         }
     },
     append_steps_to_planner: async ({ plannerId, steps }) => {
         try {
-            if (steps && steps.length > 0) {
-                await db.insert(todosTable).values(
-                    steps.map((step: Step) => ({
-                        planId: parseInt(plannerId),
-                        title: step.title,
-                        description: step.description || '',
-                        order: step.order,
-                        priority: step.priority || 'medium',
-                        estimatedTime: step.estimatedTime,
-                        notes: step.notes || '',
-                        resources: step.resources || [],
-                        status: 'pending',
-                    }))
-                );
-            }
+            await convex.mutation(api.ai_tools.appendSteps, {
+                planId: plannerId as Id<"plans">,
+                steps: steps.map((s: any) => ({
+                    ...s,
+                    priority: (s.priority || 'medium') as "low" | "medium" | "high"
+                }))
+            });
 
             return { success: true, message: `Appended ${steps.length} steps to planner` };
-        } catch (error) {
-            return { success: false, error: 'Failed to append steps to planner' };
+        } catch (error: any) {
+            return { success: false, error: error.message || 'Failed to append steps to planner' };
         }
     },
     get_today_tasks: async ({ userId }) => {
         try {
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const tomorrow = new Date(today);
-            tomorrow.setDate(tomorrow.getDate() + 1);
-
-            const plans = await db
-                .select({ id: learningPlansTable.id })
-                .from(learningPlansTable)
-                .where(
-                    and(
-                        eq(learningPlansTable.userId, parseInt(userId)),
-                        eq(learningPlansTable.status, 'active')
-                    )
-                );
-
-            if (plans.length === 0) {
-                return { success: false, error: 'No active planners found' };
-            }
-
-            const tasks = await db
-                .select()
-                .from(todosTable)
-                .where(
-                    and(
-                        inArray(todosTable.planId, plans.map(p => p.id)),
-                        eq(todosTable.status, 'pending'),
-                        lt(todosTable.dueDate, tomorrow),
-                    )
-                );
+            const tasks = await convex.query(api.ai_tools.getTodayTasks, {
+                userId: userId as Id<"users">
+            });
 
             return { success: true, tasks };
         } catch (error) {
@@ -534,6 +430,8 @@ Current Date: ${TodayDate}`;
 
     prompt += `\n\nThe user ID is: ${userId}. Use this where needed.`;
 
+    console.log("prompt", prompt)
+
     // Initialize contents with history and current prompt
     const contents: any[] = [];
 
@@ -570,13 +468,13 @@ Current Date: ${TodayDate}`;
             contents: contents
         });
 
+
         // Tool Loop: Handle multiple function calls until Gemini provides a text response
         let loopCount = 0;
         const MAX_LOOPS = 10;
 
         while (result.functionCalls && result.functionCalls.length > 0 && loopCount < MAX_LOOPS) {
             loopCount++;
-
             // 1. Add the model's response (with function calls) to history
             const modelContent = result.candidates?.[0]?.content;
             if (!modelContent) break;
@@ -587,7 +485,7 @@ Current Date: ${TodayDate}`;
             for (const call of result.functionCalls) {
                 if (!call.name) continue;
                 const handler = toolHandlers[call.name];
-
+                console.log("Calling", handler.name, JSON.stringify(call.args, null, 2))
                 const output = handler
                     ? await handler(call.args)
                     : { error: `Tool ${call.name} not found` };

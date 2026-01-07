@@ -8,108 +8,78 @@ import React, {
     useCallback,
     useMemo,
 } from 'react';
+import { useQuery, useMutation } from 'convex/react';
+import { api } from '../../convex/_generated/api';
+import { Id } from '../../convex/_generated/dataModel';
+import { useAuth } from './AuthContext';
 
 export interface Conversation {
-    id: number;
-    userId: number;
+    _id: Id<"chats">;
+    _creationTime: number;
+    userId: Id<"users">;
     title: string;
-    createdAt: string;
-    updatedAt: string;
-    lastMessage?: string;
+    createdAt: number;
+    updatedAt: number;
 }
 
 interface ChatContextType {
     conversations: Conversation[];
-    selectedConversationId: number | null;
+    selectedConversationId: Id<"chats"> | null;
     loading: boolean;
     error: string | null;
-    fetchConversations: (refresh?: boolean) => Promise<void>;
-    setSelectedConversationId: (id: number | null) => void;
-    deleteConversation: (id: number) => Promise<boolean>;
-    updateConversation: (id: number, data: Partial<Conversation>) => Promise<Conversation | null>;
+    setSelectedConversationId: (id: Id<"chats"> | null) => void;
+    deleteConversation: (id: Id<"chats">) => Promise<boolean>;
+    updateConversation: (id: Id<"chats">, title: string) => Promise<void>;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
 export function ChatProvider({ children }: { children: React.ReactNode }) {
-    const [conversations, setConversations] = useState<Conversation[]>([]);
-    const [selectedConversationId, setSelectedConversationId] = useState<number | null>(null);
-    const [loading, setLoading] = useState(false);
+    const [selectedConversationId, setSelectedConversationId] = useState<Id<"chats"> | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const { user } = useAuth();
+    
+    // Fetch conversations from Convex
+    const conversations = useQuery(
+        api.chats.listUserChats,
+        user?._id ? { userId: user._id } : "skip"
+    ) || [];
 
-    const fetchConversations = useCallback(async (refresh = false) => {
-        setLoading(true);
-        setError(null);
+    const deleteChatMutation = useMutation(api.chats.deleteChat);
+    const updateChatMutation = useMutation(api.chats.updateChat);
 
+    const deleteConversation = async (id: Id<"chats">) => {
+        if (!user?._id) return false;
+        
         try {
-            const res = await fetch('/api/conversations');
-            if (!res.ok) throw new Error('Failed to fetch conversations');
-
-            const data = await res.json();
-            setConversations(data.conversations || []);
-        } catch (err) {
-            setError((err as Error).message);
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
-    const deleteConversation = async (id: number) => {
-        // Optimistic delete
-        const previousConversations = [...conversations];
-        setConversations(prev => prev.filter(c => c.id !== id));
-        if (selectedConversationId === id) setSelectedConversationId(null);
-
-        try {
-            const res = await fetch(`/api/conversations/${id}`, { method: 'DELETE' });
-            if (!res.ok) throw new Error('Failed to delete conversation');
+            await deleteChatMutation({ userId: user._id, chatId: id });
+            if (selectedConversationId === id) setSelectedConversationId(null);
             return true;
         } catch (e) {
-            setConversations(previousConversations);
             setError((e as Error).message);
             return false;
         }
     };
 
-    const updateConversation = async (id: number, data: Partial<Conversation>) => {
-        const previousConversations = [...conversations];
-        const optimisticConversations = conversations.map(c =>
-            c.id === id ? { ...c, ...data, updatedAt: new Date().toISOString() } : c
-        );
-        setConversations(optimisticConversations);
-
+    const updateConversation = async (id: Id<"chats">, title: string) => {
+        if (!user?._id) return;
+        
         try {
-            const res = await fetch(`/api/conversations/${id}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data),
-            });
-            if (!res.ok) throw new Error('Failed to update conversation');
-
-            const updated = await res.json();
-            setConversations(prev => prev.map(c => c.id === id ? updated.conversation : c));
-            return updated.conversation;
+            await updateChatMutation({ userId: user._id, chatId: id, title });
         } catch (e) {
-            setConversations(previousConversations);
             setError((e as Error).message);
-            return null;
         }
     };
-
-    useEffect(() => {
-        fetchConversations();
-    }, [fetchConversations]);
 
     const value = useMemo(() => ({
         conversations,
         selectedConversationId,
-        loading,
+        loading: conversations === undefined,
         error,
-        fetchConversations,
         setSelectedConversationId,
         deleteConversation,
         updateConversation,
-    }), [conversations, selectedConversationId, loading, error, fetchConversations]);
+    }), [conversations, selectedConversationId, error]);
 
     return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;
 }

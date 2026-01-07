@@ -14,26 +14,30 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { publishPlan } from "@/actions/marketplace";
 import { Rocket, Loader2, Tag as TagIcon, CoinsIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Plan } from "@/context/PlanContext";
+import { useMutation } from "convex/react";
+import { api } from "../../../../convex/_generated/api";
 
-export function PublishDialog({ plan }: { plan: Plan }) {
+export function PublishDialog({ plan, userId }: { plan: any, userId: any }) {
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [isFree, setIsFree] = useState(true);
     const [price, setPrice] = useState("0");
     const [tags, setTags] = useState("");
-    const router = useRouter();
+
+    const publish = useMutation(api.marketplaceplans.publishPlanWithSnapshot);
 
     const handlePublish = async () => {
         try {
             setLoading(true);
-            const priceInCredits = Math.round(parseFloat(price));
+            const priceInCredits = Math.floor(Math.round(parseFloat(price)));
             const tagArray = tags.split(",").map(t => t.trim()).filter(t => t !== "");
 
-            await publishPlan(plan.id, {
+            await publish({
+                sourcePlanId: plan._id,
+                authorId: userId,
                 isFree,
                 price: isFree ? 0 : priceInCredits,
                 visibility: "public",
@@ -41,7 +45,6 @@ export function PublishDialog({ plan }: { plan: Plan }) {
             });
 
             setOpen(false);
-            router.refresh();
         } catch (error) {
             console.error(error);
             alert("Failed to publish plan");

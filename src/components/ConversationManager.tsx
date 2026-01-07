@@ -16,8 +16,9 @@ import {
 import { Trash2 } from 'lucide-react'
 
 import { useChat } from '@/context/ChatContext'
+import { Id } from '../../convex/_generated/dataModel'
 
-const ConversationManager = ({ id }: { id: number }) => {
+const ConversationManager = ({ id }: { id: Id<"chats"> }) => {
   const router = useRouter()
   const { deleteConversation } = useChat()
 

@@ -16,7 +16,7 @@ import {
 const Home = () => {
   const { isAuthenticated, isLoading } = useAuth();
 
-  if (!isLoading && !isAuthenticated) {
+  if (!isAuthenticated) {
     return (
       <main className="flex flex-col items-center justify-center min-h-[calc(100vh-4rem)] bg-linear-to-b from-background to-accent/20 px-4 text-center">
         <div className="max-w-3xl space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-1000">
@@ -46,13 +46,21 @@ const Home = () => {
         </div>
       </main>
     )
-  } else {
+  }
+  else if (isLoading) {
+    return (
+      <div className='w-full h-full flex justify-center items-center'>
+        Loading...
+      </div>
+    )
+  }
+   else {
 
     return (
       <main id="main-content" className='w-full h-[calc(100vh-4rem)] bg-background/50 relative'>
         <div className='max-w-6xl border-x mx-auto h-full flex flex-col md:flex-row divide-x divide-border overflow-hidden'>
           {/* Sidebar/Todo Section - Visible on desktop (side) and mobile (main) */}
-          <aside className='w-full md:w-[450px] bg-accent/5 overflow-hidden transition-all duration-300'>
+          <aside className='w-full md:w-112.5 bg-accent/5 overflow-hidden transition-all duration-300'>
             <div className='h-full flex flex-col p-2 md:p-3'>
               <div className="flex items-center gap-2 mb-2 px-4 py-1 md:px-1">
                 <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />

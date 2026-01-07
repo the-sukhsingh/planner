@@ -1,80 +1,65 @@
 "use client";
 
-import React, { createContext, useContext, ReactNode, useEffect, useState } from "react";
+import React, { createContext, useContext, ReactNode, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import { Session } from "next-auth";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "../../convex/_generated/api";
+import { Id } from "../../convex/_generated/dataModel";
 
-interface User {
-    id?: string;
-    name?: string | null;
-    email?: string | null;
-    image?: string | null;
-    credits?: number;
+// User type based on your schema
+export interface User {
+    _id: Id<"users">;
+    _creationTime: number;
+    email: string;
+    name: string;
+    credits: number;
+    imageUrl: string;
+    createdAt: number;
 }
 
 // Auth context type
 interface AuthContextType {
-    user: User | null;
-    credits: number;
+    user: User | null | undefined;
     isLoading: boolean;
     isAuthenticated: boolean;
-    session: Session | null;
-    refreshCredits: () => Promise<void>;
+    session: any;
 }
 
 // Create context
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Import the user action
-import { getUserCredits } from "@/actions/user";
-
 // Provider component
 export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: session, status } = useSession();
-    const [user, setUser] = useState<User | null>(null);
-    const [credits, setCredits] = useState<number>(0);
+    const upsertUser = useMutation(api.users.upsertUser);
 
-    const isLoading = status === "loading";
+    // Get user from Convex based on session email
+    const convexUser = useQuery(
+        api.users.getUserByEmail,
+        session?.user?.email ? { email: session.user.email } : "skip"
+    );
 
-    const refreshCredits = async () => {
-        if (session?.user?.email) {
-            const fetchedCredits = await getUserCredits();
-            if (fetchedCredits !== null) {
-                setCredits(fetchedCredits);
-            }
-        }
-    };
+    const isLoading = status === "loading" || (session && convexUser === undefined);
 
-    // Extract user from session and fetch credits
+    // Sync user to Convex when session exists but user doesn't
     useEffect(() => {
-        if (session?.user) {
-            setUser({
-                id: session.user.email || undefined,
-                name: session.user.name,
+        if (session?.user?.email && convexUser === null) {
+            // User is authenticated but doesn't exist in Convex, create them
+            upsertUser({
                 email: session.user.email,
-                image: session.user.image,
+                name: session.user.name || session.user.email.split("@")[0],
+                imageUrl: session.user.image || undefined,
+            }).catch((error) => {
+                console.error("Error syncing user to Convex:", error);
             });
-            refreshCredits();
-        } else {
-            setUser(null);
-            setCredits(0);
         }
-    }, [session]);
-
-    // Update user object with credits when credits state changes
-    useEffect(() => {
-        if (user) {
-            setUser(prev => prev ? { ...prev, credits } : null);
-        }
-    }, [credits]);
+    }, [session, convexUser, upsertUser]);
 
     const value: AuthContextType = {
-        user,
-        credits,
-        isLoading,
-        isAuthenticated: !!session,
+        user: convexUser as User | null | undefined,
+        isLoading: isLoading as boolean,
+        isAuthenticated: !!session && !!convexUser,
         session,
-        refreshCredits,
     };
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
