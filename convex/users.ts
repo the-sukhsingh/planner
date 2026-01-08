@@ -153,6 +153,7 @@ export const addCredits = mutation({
   args: {
     userId: v.id("users"),
     amount: v.number(),
+    reason: v.string(),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
@@ -161,11 +162,30 @@ export const addCredits = mutation({
       throw new Error("User not found");
     }
     await ctx.db.patch(args.userId, { credits: user.credits + args.amount });
+
+    // Log transaction
+    await ctx.db.insert("creditTransactions", {
+      userId: args.userId,
+      amount: args.amount,
+      reason: args.reason,
+      metadata: null,
+      createdAt: Date.now(),
+    });
+
+    // Log it
+    await ctx.db.insert("creditTransactions", {
+      userId: args.userId,
+      amount: args.amount,
+      reason: "topup",
+      metadata: null,
+      createdAt: Date.now(),
+    });
+
     return null;
   },
 });
 
-// Deduct credits from user
+// Deduct credits from user (simple, not recommended for external use)
 export const deductCredits = mutation({
   args: {
     userId: v.id("users"),
@@ -179,6 +199,67 @@ export const deductCredits = mutation({
     }
     await ctx.db.patch(args.userId, { credits: Math.max(0, user.credits - args.amount) });
     return null;
+  },
+});
+
+// Atomically charge credits and log transaction. Throws if insufficient balance.
+export const chargeCredits = mutation({
+  args: {
+    userId: v.id("users"),
+    amount: v.number(), // positive amount to charge
+    reason: v.string(),
+    metadata: v.optional(v.any()),
+  },
+  returns: v.object({ remaining: v.number() }),
+  handler: async (ctx, args) => {
+    if (args.amount <= 0) {
+      throw new Error("Charge amount must be positive");
+    }
+
+    const user = await ctx.db.get(args.userId);
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    if (user.credits < args.amount) {
+      throw new Error("Insufficient credits");
+    }
+
+    const newBalance = user.credits - args.amount;
+
+    await ctx.db.patch(args.userId, { credits: newBalance });
+
+    await ctx.db.insert("creditTransactions", {
+      userId: args.userId,
+      amount: -args.amount,
+      reason: args.reason,
+      metadata: args.metadata || null,
+      createdAt: Date.now(),
+    });
+
+    return { remaining: newBalance };
+  },
+});
+
+// Get recent credit transactions for a user
+export const listCreditTransactions = query({
+  args: {
+    userId: v.id("users"),
+    limit: v.optional(v.number()),
+  },
+  returns: v.array(v.object({
+    _id: v.id("creditTransactions"),
+    _creationTime: v.number(),
+    userId: v.id("users"),
+    amount: v.number(),
+    reason: v.string(),
+    metadata: v.optional(v.any()),
+    createdAt: v.number(),
+  })),
+  handler: async (ctx, args) => {
+    const limit = args.limit || 50;
+    const transactions = await ctx.db.query("creditTransactions").withIndex("by_user", (q) => q.eq("userId", args.userId)).take(limit);
+    return transactions;
   },
 });
 

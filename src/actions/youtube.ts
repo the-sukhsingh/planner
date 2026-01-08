@@ -89,11 +89,10 @@ export async function createPlanFromYouTubePlaylist(playlistUrl: string, planDat
     title?: string;
     description?: string;
     difficulty?: string;
+    dryRun?: boolean;
 }) {
     const user = await getCurrentUser();
     if (!user) throw new Error("Unauthorized");
-
-    if (user.credits < 10) throw new Error("Not enough credits");
 
     // Extract playlist ID
     const playlistId = extractPlaylistId(playlistUrl);
@@ -106,6 +105,17 @@ export async function createPlanFromYouTubePlaylist(playlistUrl: string, planDat
     if (videos.length === 0) {
         throw new Error("No videos found in playlist");
     }
+
+    // Compute flat pricing: base 5 + 1 per video up to 10, capped at 15
+    const videoCount = videos.length;
+
+    const price = Math.min(15, 5 + Math.min(10, videoCount));
+
+    if (planData.dryRun) {
+        return { success: true, estimatedCost: price, videosCount: videoCount };
+    }
+
+    if (user.credits < price) throw new Error("Not enough credits");
 
     // Create the learning plan
     const planId = await fetchMutation(api.plans.createPlan, {
@@ -139,11 +149,13 @@ export async function createPlanFromYouTubePlaylist(playlistUrl: string, planDat
         todos: todoValues
     });
 
-    // Deduct 10 credits from user
-    await fetchMutation(api.users.deductCredits, {
+    // Charge user now that plan creation succeeded
+    await fetchMutation(api.users.chargeCredits, {
         userId: user._id,
-        amount: 10
+        amount: price,
+        reason: 'youtube_playlist',
+        metadata: { videosCount: videoCount }
     });
 
-    return { success: true, planId: planId, videosCount: videos.length };
+    return { success: true, planId: planId, videosCount: videos.length, cost: price };
 }

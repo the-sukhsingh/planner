@@ -259,6 +259,31 @@ const PlanInterface = ({ setId }: { setId: (id: string) => void }) => {
     URL.revokeObjectURL(url);
   };
 
+  const [youtubeEstimate, setYoutubeEstimate] = useState<number | null>(null);
+
+  useEffect(() => {
+    // estimate whenever playlistUrl changes (debounce if necessary)
+    let cancelled = false;
+    const runEstimate = async () => {
+      if (!youtubeData.playlistUrl) {
+        setYoutubeEstimate(null);
+        return;
+      }
+      try {
+        const result = await createPlanFromYouTubePlaylist(youtubeData.playlistUrl, {
+          dryRun: true
+        });
+        const cost = (result as any).estimatedCost ?? null;
+        if (!cancelled) setYoutubeEstimate(cost);
+      } catch (err) {
+        if (!cancelled) setYoutubeEstimate(null);
+      }
+    }
+
+    runEstimate();
+    return () => { cancelled = true }
+  }, [youtubeData.playlistUrl]);
+
   const handleYouTubePlaylist = async () => {
     if (!youtubeData.playlistUrl) return;
 
@@ -273,6 +298,7 @@ const PlanInterface = ({ setId }: { setId: (id: string) => void }) => {
       if (result.success) {
         setYoutubeDialogOpen(false);
         setYoutubeData({ playlistUrl: '', title: '', description: '', difficulty: 'intermediate' });
+        setYoutubeEstimate(null);
         await contextFetchPlans();
       }
     } catch (error: any) {
@@ -378,15 +404,15 @@ const PlanInterface = ({ setId }: { setId: (id: string) => void }) => {
   }
 
   return (
-    <div className="max-w-6xl mx-auto p-6 md:p-0">
+    <div className="max-w-6xl mx-auto p-4 md:px-6">
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-0">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
 
         {/* Sidebar Panel */}
-        <div className="lg:col-span-4 lg:px-4 space-y-6 border-x h-screen sticky top-16 lg:pt-4">
+        <div className="lg:col-span-4 lg:px-4 space-y-6 lg:border-r h-fit ">
           <div className="flex flex-col gap-4">
             <div className="space-y-2">
-              <h1 className="text-3xl font-bold tracking-tight mb-2 ">
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mb-2">
                 Plans
               </h1>
               <p className="text-muted-foreground text-lg">
@@ -444,7 +470,8 @@ const PlanInterface = ({ setId }: { setId: (id: string) => void }) => {
                 <DialogContent className="sm:max-w-lg">
                   <DialogHeader>
                     <DialogTitle className="text-xl font-semibold">Import from YouTube Playlist</DialogTitle>
-                    <DialogDescription>Create a learning plan from a YouTube playlist. Each video will become a task. It will cost you 10 credits.</DialogDescription>
+                    <DialogDescription>Create a learning plan from a YouTube playlist. Each video will become a task. Estimated cost will be shown when you paste a playlist URL.</DialogDescription>
+
                   </DialogHeader>
                   <div className="space-y-4 pt-4">
                     <div className="space-y-2">
@@ -455,7 +482,15 @@ const PlanInterface = ({ setId }: { setId: (id: string) => void }) => {
                         onChange={(e) => setYoutubeData({ ...youtubeData, playlistUrl: e.target.value })}
                         placeholder="https://www.youtube.com/playlist?list=..."
                       />
+                      <div className='flex justify-between items-center'>
+
                       <p className="text-xs text-muted-foreground">Paste a YouTube playlist URL or playlist ID</p>
+                      {youtubeEstimate !== null && (
+                          <p className="text-xs text-muted-foreground">
+                          Estimated cost: <span className="font-medium">{youtubeEstimate} credits</span>
+                        </p>
+                      )}
+                      </div>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="youtube-title" className="text-sm font-medium">Plan Title (Optional)</Label>
@@ -501,13 +536,13 @@ const PlanInterface = ({ setId }: { setId: (id: string) => void }) => {
             </div>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-3 overflow-auto h-full">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-medium text-muted-foreground">Your Plans</h2>
               <span className="text-xs text-muted-foreground">{plans.length}</span>
             </div>
 
-            <div className="space-y-2">
+            <div className="flex flex-col gap-3 overflow-y-auto max-h-[70%]">
               {plans.map((plan) => (
                 <Card
                   key={plan._id}
@@ -554,7 +589,7 @@ const PlanInterface = ({ setId }: { setId: (id: string) => void }) => {
         </div>
 
         {/* Main Content Area */}
-        <div className="lg:col-span-8 lg:pt-4 lg:px-4 border-r">
+        <div className="lg:col-span-8 lg:pt-4 lg:px-4">
           {selectedPlan ? (
             <div className="space-y-6">
               {/* Plan Header */}
@@ -568,7 +603,7 @@ const PlanInterface = ({ setId }: { setId: (id: string) => void }) => {
                         <Clock className="h-3 w-3" /> {selectedPlan.estimatedDuration || currentTodos.length} days
                       </span>
                     </div>
-                    <h2 className="text-2xl font-semibold tracking-tight mb-2">{selectedPlan.title}</h2>
+                    <h2 className="text-xl md:text-2xl font-semibold tracking-tight mb-2">{selectedPlan.title}</h2>
                     {selectedPlan.description && (
                       <p className="text-sm text-muted-foreground">{selectedPlan.description}</p>
                     )}
@@ -743,7 +778,7 @@ const PlanInterface = ({ setId }: { setId: (id: string) => void }) => {
               </div>
             </div>
           ) : (
-            <div className="h-[60vh] flex flex-col items-center justify-center text-center">
+            <div className="md:h-[60vh] h-auto flex flex-col items-center justify-center text-center">
               <LayoutDashboard className="h-12 w-12 text-muted-foreground/20 mb-4" />
               <h2 className="text-xl font-semibold mb-2">No Plan Selected</h2>
               <p className="text-sm text-muted-foreground max-w-md">Select a plan from the sidebar or create a new one to get started.</p>

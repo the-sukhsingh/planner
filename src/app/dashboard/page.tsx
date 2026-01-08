@@ -37,9 +37,9 @@ export default function DashboardPage() {
   );
 
   // Fetch badges
-  const badges = useQuery(api.badges.getUserBadges,
-    user ? { userId: user._id } : "skip"
-  );
+  // const badges = useQuery(api.badges.getUserBadges,
+  //   user ? { userId: user._id } : "skip"
+  // );
 
   // Fetch purchases
   const purchases = useQuery(api.purchases.listUserPurchases,
@@ -212,7 +212,7 @@ export default function DashboardPage() {
         </Card>
 
         {/* Badges */}
-        <Card className="lg:col-span-2">
+        {/* <Card className="lg:col-span-2">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2">
@@ -259,7 +259,7 @@ export default function DashboardPage() {
               </div>
             )}
           </CardContent>
-        </Card>
+        </Card> */}
 
         {/* Daily Activity Calendar */}
         <Card className="lg:col-span-2 lg:row-span-2">
@@ -380,7 +380,7 @@ export default function DashboardPage() {
         </Card>
 
         {/* Quick Stats Row */}
-        <Card className="border-green-500/20 bg-linear-to-br from-green-500/5 to-transparent">
+        {/* <Card className="border-green-500/20 bg-linear-to-br from-green-500/5 to-transparent">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm flex items-center gap-2">
               <Target className="h-4 w-4 text-green-500" />
@@ -427,7 +427,7 @@ export default function DashboardPage() {
               </Link>
             </div>
           </CardContent>
-        </Card>
+        </Card> */}
 
       </div>
     </div>

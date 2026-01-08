@@ -19,7 +19,6 @@ export const createPlanWithSteps = mutation({
             order: v.number(),
             priority: v.optional(v.union(v.literal("low"), v.literal("medium"), v.literal("high"))),
             estimatedTime: v.optional(v.number()),
-            notes: v.optional(v.string()),
             resources: v.optional(v.array(v.string())),
         })),
     },
@@ -39,6 +38,7 @@ export const createPlanWithSteps = mutation({
 
         if (args.steps.length > 0) {
             const planStartDate = args.startDate ? new Date(args.startDate) : new Date();
+            planStartDate.setHours(0, 0, 0, 0);
             const orderToDayMap = new Map<number, number>();
             let currentDay = 0;
             let lastOrder = -1;
@@ -52,6 +52,7 @@ export const createPlanWithSteps = mutation({
                 }
                 const dueDate = new Date(planStartDate);
                 dueDate.setDate(dueDate.getDate() + (orderToDayMap.get(step.order) ?? 0));
+                dueDate.setHours(0, 0, 0, 0); // Ensure dueDate is set to midnight
 
                 await ctx.db.insert("todos", {
                     planId,
@@ -196,7 +197,12 @@ export const getTodayTasks = query({
             const planTasks = await ctx.db
                 .query("todos")
                 .withIndex("by_plan_status", (q) => q.eq("planId", planId).eq("status", "pending"))
-                .filter((q) => q.lt(q.field("dueDate"), tomorrow.getTime()) && q.gte(q.field("dueDate"), today.getTime()))
+                .filter((q) => {
+                    return q.and(
+                        q.lt(q.field("dueDate"), tomorrow.getTime()),
+                        q.gte(q.field("dueDate"), today.getTime())
+                    );
+                })
                 .collect();
             tasks.push(...planTasks);
         }

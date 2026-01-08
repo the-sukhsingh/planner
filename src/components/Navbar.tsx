@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ModeToggle } from "./theme/ThemeToggle";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { Menu, X, Rocket, LogOut, LayoutDashboard, MessageSquare, Upload, Globe, CreditCard } from "lucide-react";
+import { Menu, X, Rocket, LogOut, CreditCard } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePathname } from "next/navigation";
 
@@ -19,28 +19,25 @@ const Navbar = () => {
   const links = [
     { href: "/dashboard", label: "Dashboard" },
     { href: "/conversations", label: "Chats" },
-    { href: "/plans", label: "Plans" },
+    { href: "/plans", label: "Planns" },
     { href: "/leaderboard", label: "Leaderboard" },
     { href: "/marketplace", label: "Marketplace" },
     // { href: "/uploads", label: "Documents" },
-    { href: "/pricing", label: "Buy Credits" },
+    { href: "/credits", label: "Credits" },
   ];
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-xl transition-all duration-300">
-      <div className="max-w-6xl mx-auto px-4 sm:px-0">
+      <div className="max-w-5xl mx-auto px-4 xl:px-0">
         {/* Skip link for keyboard users */}
         <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-50 bg-background px-4 py-2 rounded-full border shadow-lg transition-all">Skip to content</a>
 
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2 group">
-            <div className="h-8 w-8 rounded-lg flex items-center justify-center ">
-              <Rocket className="h-5 w-5 text-primary transition-transform group-hover:rotate-12 group-hover:scale-105" />
-            </div>
-            <span className="text-xl font-bold tracking-tight text-primary">
-              Planner
-            </span>
+              <span className="text-xl font-bold font-mono"> 
+                Plann
+                </span>
           </Link>
 
           {/* Desktop Links */}
@@ -158,7 +155,7 @@ const Navbar = () => {
                         </div>
                       </div>
                       <div className="p-1 space-y-1">
-                        <Link href="/pricing" className="block w-full">
+                        <Link href="/credits" className="block w-full">
                           <Button
                             variant="ghost"
                             className="w-full justify-start gap-2 hover:bg-primary/10 hover:text-primary transition-colors"

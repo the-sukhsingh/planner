@@ -131,8 +131,6 @@ const List = () => {
     const {user} = useAuth();
 
     const todos = useQuery(api.todos.getTodosBySpecificDate, user ? { userId: user._id ,specificDate: selectedDate.getTime()} : "skip")
-    const createTodayTodo = useMutation(api.todos.createTodoForToday)
-    const createTodoForPlan = useMutation(api.todos.createTodo)
     const changeTodo = useMutation(api.todos.updateTodoStatus)
     
     if (!user) {

@@ -113,6 +113,9 @@ export const endSession = mutation({
             createdAt: now,
         });
 
+        // Evaluate badges for this user (non-blocking for callers is fine, but run here)
+        // await ctx.runMutation("badgeDefinitions.evaluateBadgesForUser", { userId: session.userId });
+
         return null;
     },
 });

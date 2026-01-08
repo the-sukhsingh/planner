@@ -198,4 +198,14 @@ export default defineSchema({
         createdAt: v.number(),
     }).index("by_user", ["userId"]),
 
+    // Credit transactions log - records every credit change for auditing
+    creditTransactions: defineTable({
+        userId: v.id("users"),
+        // Negative for charges, positive for top-ups
+        amount: v.number(),
+        reason: v.string(), // e.g., 'chat', 'youtube_playlist', 'purchase'
+        metadata: v.optional(v.any()), // store token counts, video counts, etc. (server-only)
+        createdAt: v.number(),
+    }).index("by_user", ["userId"]),
+
 });

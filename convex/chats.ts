@@ -25,6 +25,10 @@ export const createChat = mutation({
             role: "user",
             createdAt: Date.now()
         })
+
+        // Evaluate AI engagement badges
+        // await ctx.runMutation("badgeDefinitions.evaluateBadgesForUser", { userId: args.userId });
+
         return chat;
     }
 });

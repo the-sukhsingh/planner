@@ -21,7 +21,7 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: "Planner",
+  title: "Plann",
   description: "Plan and organize your learning journey with Planner.",
 };
 

@@ -59,9 +59,9 @@ export default function MarketplacePage() {
     }
 
     return (
-        <div className="container mx-auto max-w-6xl py-10 px-4">
+        <div className="container mx-auto max-w-6xl py-6 px-4 md:px-6">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-6">
-                <div>
+                <div className="p-2">
                     <h1 className="text-4xl font-bold tracking-tight mb-2 ">
                         Planner Marketplace
                     </h1>

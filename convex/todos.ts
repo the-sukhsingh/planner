@@ -17,6 +17,10 @@ export const createTodo = mutation({
     },
     returns: v.id("todos"),
     handler: async (ctx, args) => {
+
+        const today = new Date(args.dueDate);
+        today.setHours(0, 0, 0, 0);
+
         return await ctx.db.insert("todos", {
             planId: args.planId,
             title: args.title,
@@ -24,7 +28,7 @@ export const createTodo = mutation({
             order: args.order,
             priority: args.priority,
             status: args.status ?? "pending",
-            dueDate: args.dueDate,
+            dueDate: today.getTime(),
             estimatedTime: args.estimatedTime,
             resources: args.resources,
             createdAt: Date.now(),
@@ -270,13 +274,18 @@ export const updateTodo = mutation({
             throw new Error("Unauthorized");
         }
 
+        const today = args.dueDate !== undefined ? new Date(args.dueDate) : null;
+        if (today) {
+            today.setHours(0, 0, 0, 0);
+        }
+
         const updates: Record<string, string | number | string[] | undefined> = {};
         if (args.title !== undefined) updates.title = args.title;
         if (args.description !== undefined) updates.description = args.description;
         if (args.order !== undefined) updates.order = args.order;
         if (args.priority !== undefined) updates.priority = args.priority;
         if (args.status !== undefined) updates.status = args.status;
-        if (args.dueDate !== undefined) updates.dueDate = args.dueDate;
+        if (args.dueDate !== undefined) updates.dueDate = today ? today.getTime() : args.dueDate;
         if (args.estimatedTime !== undefined) updates.estimatedTime = args.estimatedTime;
         if (args.resources !== undefined) updates.resources = args.resources;
 
@@ -346,6 +355,9 @@ export const completeTodo = mutation({
             completedAt: Date.now(),
             updatedAt: Date.now(),
         });
+
+        // Evaluate badges after completing a todo
+        // await ctx.runMutation("badgeDefinitions.evaluateBadgesForUser", { userId: args.userId });
         return null;
     },
 });
@@ -516,7 +528,7 @@ export const getTodosBySpecificDate = query({
         const plans = await ctx.db.query("plans").withIndex("by_user", (q) => q.eq("userId", args.userId)).collect();
         const startOfDay = new Date(args.specificDate).setHours(0, 0, 0, 0);
         const endOfDay = new Date(args.specificDate).setHours(23, 59, 59, 999);
-
+        // console.log("Start of day:", new Date(startOfDay), "End of day:", new Date(endOfDay));
         const allTodos = await Promise.all(
             plans.map(async (plan) => {
                 return (await ctx.db.query("todos").withIndex("by_plan", (q) => q.eq("planId", plan._id)).collect())

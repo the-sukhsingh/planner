@@ -79,6 +79,15 @@ export const deleteUpload = mutation({
     },
 });
 
+export const deleteFromStorage = mutation({
+    args: {
+        storageId: v.string(),
+    },
+    handler: async (ctx, args) => {
+        await ctx.storage.delete(args.storageId);
+    },
+});
+
 // Generate upload URL for a file
 export const generateUploadUrl = mutation({
     args: {},

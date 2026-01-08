@@ -34,6 +34,7 @@ export const POST = Webhooks({
             await convex.mutation(api.users.addCredits, {
                 userId,
                 amount: credits,
+                reason: 'purchase',
             });
             console.log(`Successfully added ${credits} credits to user ${userId}`);
         } catch (error) {

@@ -19,7 +19,7 @@ export default function LeaderboardPage() {
   const weekNumber = getWeekNumber(now);
   const weekPeriod = `${year}-W${String(weekNumber).padStart(2, '0')}`;
   const monthPeriod = `${year}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  const generalPeriod = 'all-time';
+  const generalPeriod = "current"; // 'YYYY-MM-DD' for all-time or current day
 
   const weeklyLeaderboard = useQuery(api.leaderboards.getLeaderboardWithUsers, {
     type: "weekly_time",
@@ -191,9 +191,9 @@ export default function LeaderboardPage() {
   };
 
   return (
-    <div className="container mx-auto py-10 px-4 max-w-5xl">
+    <div className="max-w-6xl mx-auto p-4 md:px-6 py-6">
       {/* Header */}
-      <div>
+      <div className="p-2">
         <h1 className="text-4xl font-bold tracking-tight mb-2 bg-linear-to-r from-primary to-primary/60 bg-clip-text text-transparent">
           Leaderboard
         </h1>

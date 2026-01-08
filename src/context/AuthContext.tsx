@@ -55,6 +55,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
     }, [session, convexUser, upsertUser]);
 
+    // Update daily streak when user opens the app.
+    // This runs once when `convexUser` becomes available; the server logic is idempotent for the same day.
+    const updateStreak = useMutation(api.userStats.updateStreak);
+
+    useEffect(() => {
+        if (convexUser?._id) {
+            updateStreak({ userId: convexUser._id }).catch((err) => {
+                // If user stats are not initialized yet, keep this quiet. We'll create stats elsewhere on user creation.
+                console.debug("updateStreak: no-op or failed:", err?.message ?? err);
+            });
+        }
+    }, [convexUser?._id, updateStreak]);
+
     const value: AuthContextType = {
         user: convexUser as User | null | undefined,
         isLoading: isLoading as boolean,

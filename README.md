@@ -48,7 +48,6 @@ Planner is an intelligent learning orchestration engine that eliminates "tutoria
 ### AI & Processing
 - **[Google Gemini API](https://ai.google.dev/)** - Advanced language model for curriculum generation
 - **[YouTube Data API](https://developers.google.com/youtube)** - Playlist and video metadata extraction
-- **[Inngest](https://www.inngest.com/)** - Event-driven background job processing
 
 ### Infrastructure
 - **[Auth.js](https://authjs.dev/)** - Authentication with Google OAuth
@@ -64,7 +63,6 @@ Before running Planner locally, ensure you have:
 - **Google Cloud project** with OAuth2 credentials
 - **Google Gemini API key** from [Google AI Studio](https://makersuite.google.com/app/apikey)
 - **YouTube Data API v3** enabled in Google Cloud Console
-- **Inngest account** (free tier available) or local dev server
 
 ### Environment Configuration
 
@@ -80,10 +78,6 @@ NEXTAUTH_URL="http://localhost:3000"
 # Google AI Services
 GEMINI_API_KEY="your-gemini-api-key"
 YOUTUBE_API_KEY="your-youtube-data-api-key"
-
-# Background Processing (Inngest)
-INNGEST_EVENT_KEY="your-inngest-event-key"
-INNGEST_SIGNING_KEY="your-inngest-signing-key"
 
 # Application Settings
 NEXT_PUBLIC_APP_URL="http://localhost:3000"
@@ -113,14 +107,8 @@ NEXT_PUBLIC_APP_URL="http://localhost:3000"
    npm run dev
    ```
 
-5. **Launch Inngest dev server** (separate terminal)
-   ```bash
-   npx inngest-cli@latest dev
-   ```
-
-6. **Access the application**
+5. **Access the application**
    - Frontend: [http://localhost:3000](http://localhost:3000)
-   - Inngest Dashboard: [http://localhost:8288](http://localhost:8288)
 
 ## 📁 Project Architecture
 
@@ -149,11 +137,6 @@ processor/
 │   ├── actions/            # Server actions
 │   │   └── youtube.ts      # YouTube API integration
 │   │
-│   ├── inngest/            # Background jobs
-│   │   ├── ai.ts           # AI processing functions
-│   │   ├── check.ts        # Scheduled checks
-│   │   └── functions.ts    # Job definitions
-│   │
 │   ├── context/            # React context providers
 │   │   ├── ChatContext.tsx # Chat state management
 │   │   └── PlanContext.tsx # Plan state management
@@ -171,7 +154,6 @@ npm run dev          # Start development server
 npm run build        # Build for production
 npm run start        # Start production server
 npm run lint         # Run ESLint
-npx inngest-cli dev  # Start Inngest dev server
 ```
 
 ## 🚀 Deployment
@@ -180,7 +162,6 @@ npx inngest-cli dev  # Start Inngest dev server
 
 - **Frontend**: [Vercel](https://vercel.com) (optimized for Next.js)
 - **Database**: [Convex](https://www.convex.dev)
-- **Background Jobs**: [Inngest Cloud](https://www.inngest.com)
 
 ### Environment Variables in Production
 

@@ -101,6 +101,9 @@ export const updateLearningTime = mutation({
             updatedAt: now,
         });
 
+        // Evaluate badges after learning time update
+        // await ctx.runMutation("badgeDefinitions.evaluateBadgesForUser", { userId: args.userId });
+
         return null;
     },
 });
@@ -153,6 +156,9 @@ export const updateStreak = mutation({
             lastActiveDate: today,
             updatedAt: now,
         });
+
+        // Evaluate badges after streak update
+        // await ctx.runMutation("badgeDefinitions.evaluateBadgesForUser", { userId: args.userId });
 
         return null;
     },

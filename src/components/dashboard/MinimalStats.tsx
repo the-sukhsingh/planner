@@ -50,7 +50,7 @@ export default function MinimalStats() {
       {stats.map((stat) => (
         <div key={stat.label} className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <stat.icon className="h-4 w-4 text-muted-foreground/40" strokeWidth={1.5} />
+            <stat.icon className="h-4 w-4 text-foreground" strokeWidth={1.5} />
             <span className="text-xs text-muted-foreground">{stat.label}</span>
           </div>
           <div className="flex items-baseline gap-1">

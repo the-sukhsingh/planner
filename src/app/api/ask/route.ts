@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { inngest } from "../../../inngest/client"; // Import our client
 import { auth } from "@/auth";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../convex/_generated/api";
@@ -45,32 +44,39 @@ export async function POST(request: Request) {
             );
         }
 
-        // Check credits
-        if (user.credits < 5) {
+        // Estimate required credits deterministically before processing
+        // We'll estimate tokens based on question length + recent messages (deterministic, adjustable)
+        let recentMessages: any[] = [];
+        if (chatId) {
+            try {
+                recentMessages = await convex.query(api.messages.listChatMessages, {
+                    userId: user._id,
+                    chatId: chatId as Id<"chats">
+                });
+            } catch (e) {
+                recentMessages = [];
+            }
+        }
+
+        // Build a conservative estimate of input characters
+        const historySample = (recentMessages || []).slice(-5).map(m => m.content).join('\n');
+        const chars = (historySample + '\n' + question).length;
+        const estimatedInputTokens = Math.max(1, Math.ceil(chars / 4));
+        // Estimate output tokens conservatively: half of inputTokens + 128, capped
+        const estimatedOutputTokens = Math.min(2048, Math.max(64, Math.ceil(estimatedInputTokens * 0.5) + 128));
+
+        const effectiveTokens = estimatedInputTokens + (4 * estimatedOutputTokens);
+        const estimatedCredits = Math.min(8, Math.max(1, Math.ceil(effectiveTokens / 2000)));
+
+        if (user.credits < estimatedCredits) {
             return NextResponse.json(
-                { error: "Insufficient credits" },
+                { error: "Insufficient credits", estimatedCredits },
                 { status: 403 }
             );
         }
 
-        const fileCount = files.length;
+        // We do NOT deduct here. Charging happens after successful AI response to ensure we only charge for completed work.  
 
-        if (fileCount > 0) {
-            if (user.credits < 10) {
-                return NextResponse.json(
-                    { error: "Insufficient credits" },
-                    { status: 403 }
-                );
-            } 
-        }
-
-        const deductCreditsAmount = fileCount > 0 ? 8 : 3;
-
-        // Deduct credits
-        await convex.mutation(api.users.deductCredits, {
-            userId: user._id,
-            amount: deductCreditsAmount,
-        });
 
         // Get or create conversation based on chatId
         let conversation: { _id: Id<"chats">; title: string };
@@ -143,28 +149,23 @@ export async function POST(request: Request) {
 
         const filteredFileData = fileData.filter(f => f !== null);
 
-        // Note: File uploads are now handled in the Inngest function
-        // We'll just track that files were attached
-        const uploadedFiles: any[] = [];
-
-        // Send an event to Inngest
-        await inngest.send({
-            name: "question/asked",
-            data: {
-                question,
-                files: filteredFileData,
-                userEmail: session.user.email,
-                conversationId: conversation._id,
-                messageId: userMessageId,
-            },
+        // Call the Convex action directly
+        const result = await convex.action(api.ai.generate, {
+            question,
+            files: filteredFileData,
+            userEmail: session.user.email,
+            conversationId: conversation._id,
+            messageId: userMessageId,
         });
 
         return NextResponse.json({
             success: true,
-            message: "Question received and being processed",
+            message: result.status === "success" ? "Question processed successfully" : "Error processing question",
             conversationId: conversation._id,
             messageId: userMessageId,
-            uploads: uploadedFiles,
+            uploads: filteredFileData,
+            estimatedCredits,
+            result
         });
 
     } catch (error) {

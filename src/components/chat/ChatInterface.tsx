@@ -51,7 +51,7 @@ const ChatInterface = ({ initialChatId = null, initialMessages = [], showHeader 
 
     const dummyMessages: String[] = [
         "Create a planner to learn React in 30 days.",
-        "Generate a study schedule for mastering Python programming.",
+        "Generate a study schedule for master Python.",
         "Design a learning path for data science beginners.",
         "Give me a weekly plan to improve my math skills.",
         "What is my today's learning agenda?",
@@ -178,6 +178,17 @@ const ChatInterface = ({ initialChatId = null, initialMessages = [], showHeader 
                         setSelectedConversationId(data.conversationId as Id<"chats">);
                     }
                 }
+
+                // Show estimated credits to the user (tokens never sent to frontend)
+                if (typeof data.estimatedCredits === 'number') {
+                    const estimationMessage: ChatMessage = {
+                        id: `est-${Date.now()}`,
+                        content: `Estimated cost: ${data.estimatedCredits} credits`,
+                        sender: 'ai',
+                        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                    };
+                    setMessages(prev => [...prev, estimationMessage]);
+                }
             }
         } catch (error) {
             console.error('Error sending message:', error)
@@ -228,6 +239,14 @@ const ChatInterface = ({ initialChatId = null, initialMessages = [], showHeader 
                                 userName={msg.sender === 'user' ? session?.user?.name || 'You' : 'AI Assistant'}
                             />
                         ))}
+                        {
+                            isLoading && (
+                                <div className="flex items-center space-x-2 px-4 py-2">
+                                    <Loader2 className="animate-spin h-5 w-5 text-neutral-500" />
+                                    <span className="text-neutral-500">Processing...</span>
+                                </div>
+                            )
+                        }
                         <div ref={messagesEndRef} />
                     </>
                 )}

@@ -24,7 +24,7 @@ export const createPlan = mutation({
     },
     returns: v.id("plans"),
     handler: async (ctx, args) => {
-        return await ctx.db.insert("plans", {
+        const planId = await ctx.db.insert("plans", {
             userId: args.userId,
             chatId: args.chatId,
             title: args.title,
@@ -36,6 +36,11 @@ export const createPlan = mutation({
             createdAt: Date.now(),
             updatedAt: Date.now(),
         });
+
+        // Evaluate badges (e.g., Planner) after creating a plan
+        // await ctx.runMutation("badgeDefinitions.evaluateBadgesForUser", { userId: args.userId });
+
+        return planId;
     },
 });
 
@@ -229,6 +234,12 @@ export const updatePlanStatus = mutation({
             status: args.status,
             updatedAt: Date.now(),
         });
+
+        // If the plan was completed, evaluate badges (e.g., Plan Completer)
+        // if (args.status === "completed") {
+        //   await ctx.runMutation("badgeDefinitions.evaluateBadgesForUser", { userId: args.userId });
+        // }
+
         return null;
     },
 });

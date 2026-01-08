@@ -46,10 +46,10 @@ const ConversationsPage = () => {
   }
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] max-w-6xl mx-auto border-x bg-background overflow-hidden animate-in fade-in duration-500 relative">
+    <div className="flex h-[calc(100vh-4rem)] max-w-6xl mx-auto bg-background overflow-hidden animate-in fade-in duration-500 relative p-4 md:px-6">
       {/* Sidebar - Full width on mobile, w-96 on desktop */}
       <aside className="w-full md:w-96 border-r flex flex-col bg-accent/5 backdrop-blur-xl">
-        <div className="p-4 space-y-6">
+        <div className="p-2 space-y-6">
           <div className="flex items-center justify-between">
             <div className="space-y-2">
               <h1 className="text-3xl font-bold tracking-tight mb-2 ">
