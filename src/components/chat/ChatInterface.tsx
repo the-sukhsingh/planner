@@ -180,15 +180,15 @@ const ChatInterface = ({ initialChatId = null, initialMessages = [], showHeader 
                 }
 
                 // Show estimated credits to the user (tokens never sent to frontend)
-                if (typeof data.estimatedCredits === 'number') {
-                    const estimationMessage: ChatMessage = {
-                        id: `est-${Date.now()}`,
-                        content: `Estimated cost: ${data.estimatedCredits} credits`,
-                        sender: 'ai',
-                        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                    };
-                    setMessages(prev => [...prev, estimationMessage]);
-                }
+                // if (typeof data.estimatedCredits === 'number') {
+                //     const estimationMessage: ChatMessage = {
+                //         id: `est-${Date.now()}`,
+                //         content: `Estimated cost: ${data.estimatedCredits} credits`,
+                //         sender: 'ai',
+                //         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                //     };
+                //     setMessages(prev => [...prev, estimationMessage]);
+                // }
             }
         } catch (error) {
             console.error('Error sending message:', error)

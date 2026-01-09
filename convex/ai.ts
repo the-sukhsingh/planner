@@ -406,13 +406,21 @@ export const generate = action({
             const history = messages.map(msg => ({
                 role: msg.role,
                 content: msg.content
-            })).slice(-5); // last 5 messages
+            })).slice(-5, -1); // exclude the last message
+
+
 
             // Generate AI content
             const genAI = new GoogleGenAI({ apiKey: process.env.GOOGLE_API_KEY || "" });
             const TodayDate = new Date();
 
-            const systemInstruction = `You are a helpful assistant that generates learning planners for users.
+            const systemInstruction = `You are a helpful assistant that helps users to get their queries answered using AI tools.
+            Your Main objective is to answer the user's query, everything else is secondary.
+            Like creating planners, reading files, editing planners etc are just tools to help you achieve the main objective of answering the user's query.
+            Although you can use tools to assist you, always prioritize answering the user's query directly whenever possible.
+
+    When the user's query requires creating a structured learning plan, use the create_planner tool.
+    Follow the Tool Usage Guidelines strictly to ensure the planner meets the user's needs.
 
 Tool Usage Guidelines:
     - Use create_planner to save plans to the database

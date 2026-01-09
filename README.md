@@ -1,191 +1,192 @@
-# 🎯 Planner - AI-Powered Learning Orchestration Platform
+# 🎯 Planner - AI-Powered Learning Platform
 
-> Transform scattered learning resources into structured, actionable roadmaps with the power of AI
+> Transform scattered learning resources into structured, actionable roadmaps
 
-Planner is an intelligent learning orchestration engine that eliminates "tutorial hell" by converting unstructured educational content—YouTube playlists, PDFs, course materials, or simple learning goals—into personalized, day-by-day learning roadmaps. Built with cutting-edge AI technology, Planner serves as both your curriculum designer and personal tutor.
+Planner eliminates "tutorial hell" by converting YouTube playlists, PDFs, documents, or text goals into personalized day-by-day learning roadmaps. Built with Google Gemini AI and real-time Convex backend.
 
 ## ✨ Why Planner?
 
-**The Problem**: Learners today face information overload. With countless YouTube tutorials, scattered PDFs, and fragmented resources, creating a coherent learning path is overwhelming and time-consuming.
+**Problem**: Information overload. Learners drown in YouTube tutorials, PDFs, and courses without a coherent learning path.
 
-**The Solution**: Planner uses advanced AI to automatically structure your learning journey, breaking down complex goals into manageable daily tasks while providing contextual support throughout your learning process.
+**Solution**: AI-powered automatic structuring that breaks complex goals into daily actionable tasks with integrated tutoring.
 
-## 🚀 Core Features
+## 🚀 Features
 
-### 📚 Intelligent Roadmap Generation
-- **Text-to-Curriculum**: Describe what you want to learn, and our AI generates a comprehensive, multi-day structured roadmap
-- **YouTube Integration**: Paste any YouTube playlist URL to automatically convert videos into scheduled learning tasks with durations and resources
-- **Document Processing**: Upload PDFs or images, and AI extracts key concepts to build a customized curriculum
+### 📚 AI Roadmap Generation
+- **Text-to-Curriculum**: Describe your goal → Get a complete multi-day structured roadmap
+- **YouTube Import**: Paste playlist URL → Auto-schedule videos with durations
+- **Document Processing**: Upload PDFs/images → AI extracts concepts and builds curriculum
+- **RAG Chat**: Ask questions about your uploaded materials with AI-powered contextual answers
 
-### 🏪 Learning Marketplace
-- **Discover Plans**: Browse community-created learning roadmaps across various topics
-- **Publish & Earn**: Share your original plans and help others learn
-- **Fork & Customize**: Clone existing plans and adapt them to your needs
-- **Credit Economy**: Integrated credit system for premium features and marketplace transactions
+### 🏪 Marketplace
+- **Discover & Fork**: Browse and clone community roadmaps
+- **Publish & Earn**: Share plans and earn credits from learners
+- **Credit System**: Earn through completion streaks, spend on premium features
 
-### 📊 Advanced Task Management
-- **Progress Tracking**: Visual dashboard showing completion status and learning streaks
-- **Smart Scheduling**: Bulk date shifting maintains task dependencies when your schedule changes
-- **Daily Tasks**: Organized view of what to learn each day with clear objectives
-- **Completion Analytics**: Track your learning velocity and consistency
+### 📊 Task Management
+- **Visual Dashboard**: Track completion rates and learning streaks
+- **Smart Scheduling**: Bulk date-shift feature maintains task sequences
+- **Progress Analytics**: Monitor velocity and consistency
+- **Daily View**: Clear daily task organization
 
-### 🔒 Privacy & Security
-- **Auto-Cleanup**: Uploaded documents are automatically deleted after AI processing
-- **Secure Authentication**: Google OAuth integration for seamless, secure access
-- **Data Protection**: All user data encrypted and securely stored
+## 🛠 Tech Stack
 
-## 🛠 Technology Stack
+### Core
+- **[Next.js 15](https://nextjs.org/)** - React framework with App Router & Server Actions
+- **[Convex](https://www.convex.dev/)** - Real-time serverless database & backend
+- **[TypeScript](https://www.typescriptlang.org/)** - Type-safe development
 
-### Frontend & UI
-- **[Next.js 14+](https://nextjs.org/)** - React framework with App Router
+### AI & APIs
+- **[Google Gemini](https://ai.google.dev/)** - Curriculum generation & RAG chat
+- **[YouTube Data API](https://developers.google.com/youtube)** - Playlist import
+
+### UI & Styling
 - **[Tailwind CSS](https://tailwindcss.com/)** - Utility-first styling
-- **[Radix UI](https://www.radix-ui.com/)** - Accessible component primitives
-- **[Lucide Icons](https://lucide.dev/)** - Beautiful icon set
+- **[shadcn/ui](https://ui.shadcn.com/)** - Accessible component system (Radix UI + Tailwind)
+- **[Lucide](https://lucide.dev/)** - Icon library
 
-### Backend & Database
-- **[Convex](https://www.convex.dev/)** - Real-time backend platform
-
-### AI & Processing
-- **[Google Gemini API](https://ai.google.dev/)** - Advanced language model for curriculum generation
-- **[YouTube Data API](https://developers.google.com/youtube)** - Playlist and video metadata extraction
-
-### Infrastructure
-- **[Auth.js](https://authjs.dev/)** - Authentication with Google OAuth
+### Auth & Payments
+- **[Auth.js](https://authjs.dev/)** - Google OAuth authentication
+- **Dodo Payments** - Credit purchase system
 
 ## 🏁 Getting Started
 
 ### Prerequisites
 
-Before running Planner locally, ensure you have:
+- **Node.js 18+** and npm/pnpm/yarn
+- **[Convex account](https://www.convex.dev/)** (free tier available)
+- **[Google Cloud project](https://console.cloud.google.com/)** with:
+  - OAuth2 credentials configured
+  - Gemini API key from [AI Studio](https://aistudio.google.com/app/apikey)
+  - YouTube Data API v3 enabled
 
-- **Node.js 18+** and npm/yarn installed
-- **Convex account** with a project set up
-- **Google Cloud project** with OAuth2 credentials
-- **Google Gemini API key** from [Google AI Studio](https://makersuite.google.com/app/apikey)
-- **YouTube Data API v3** enabled in Google Cloud Console
+### Environment Setup
 
-### Environment Configuration
-
-Create a `.env.local` file in the project root:
+Create `.env.local` in project root:
 
 ```env
-# Authentication (Auth.js)
-AUTH_SECRET="generate-with-openssl-rand-base64-32"
-AUTH_GOOGLE_ID="your-google-oauth-client-id"
-AUTH_GOOGLE_SECRET="your-google-oauth-client-secret"
+# Auth.js (Google OAuth)
+AUTH_SECRET="generate-with: openssl rand -base64 32"
+AUTH_GOOGLE_ID="your-google-client-id"
+AUTH_GOOGLE_SECRET="your-google-client-secret"
 NEXTAUTH_URL="http://localhost:3000"
 
-# Google AI Services
+# Google APIs
 GEMINI_API_KEY="your-gemini-api-key"
-YOUTUBE_API_KEY="your-youtube-data-api-key"
+YOUTUBE_API_KEY="your-youtube-api-key"
 
-# Application Settings
-NEXT_PUBLIC_APP_URL="http://localhost:3000"
+# Convex (automatically populated by Convex CLI)
+NEXT_PUBLIC_CONVEX_URL="your-convex-deployment-url"
+CONVEX_DEPLOYMENT="your-convex-deployment"
 ```
 
-### Installation Steps
+### Installation
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/the-sukhsingh/processor.git
-   cd processor
-   ```
+```bash
+# 1. Clone repository
+git clone https://github.com/the-sukhsingh/processor.git
+cd processor
 
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
+# 2. Install dependencies
+npm install
 
-3. **Set up the database**
-   ```bash
-   npm run db:push  # Push schema to database
-   npm run db:studio  # (Optional) Open Drizzle Studio
-   ```
+# 3. Set up Convex backend
+npx convex dev  # Creates new project or links existing
 
-4. **Start the development server**
-   ```bash
-   npm run dev
-   ```
+# 4. Start Next.js dev server (in new terminal)
+npm run dev
+```
 
-5. **Access the application**
-   - Frontend: [http://localhost:3000](http://localhost:3000)
+Access at [http://localhost:3000](http://localhost:3000)
 
-## 📁 Project Architecture
+## 📁 Architecture
 
 ```
 processor/
-├── convex/                    # Convex backend functions
-│   ├── schema.ts             # Database schema definitions
-│   ├── chats.ts              # Chat message handlers
-│   ├── plans.ts              # Learning plan operations
-│   └── users.ts              # User management
-|   └── ...                     # Other Convex functions
+├── convex/                        # Convex Backend (Serverless)
+│   ├── schema.ts                 # Database schema & indexes
+│   ├── chats.ts                  # Chat queries & mutations
+│   ├── plans.ts                  # Plan CRUD operations
+│   ├── todos.ts                  # Task management
+│   ├── messages.ts               # Chat message handlers
+│   ├── ai.ts                     # Gemini AI integration
+│   ├── ai_tools.ts               # AI tool definitions
+│   ├── uploads.ts                # Document upload handling
+│   └── _generated/               # Auto-generated types
 │
 ├── src/
-│   ├── app/                  # Next.js App Router pages
-│   │   ├── dashboard/       # User dashboard & stats
-│   │   ├── marketplace/     # Plan marketplace
-│   │   ├── conversations/   # AI chat interface
-│   │   └── api/            # API routes & webhooks
+│   ├── app/                      # Next.js App Router
+│   │   ├── dashboard/           # Main dashboard + stats
+│   │   ├── marketplace/         # Plan marketplace
+│   │   ├── conversations/       # AI chat interface
+│   │   ├── plans/               # User's plans view
+│   │   ├── uploads/             # Document management
+│   │   └── api/                 # API routes (webhooks, auth)
 │   │
-│   ├── components/          # Reusable React components
-│   │   ├── chat/           # Chat UI components
-│   │   ├── Plan/           # Plan management UI
-│   │   ├── dashboard/      # Dashboard widgets
-│   │   └── ui/             # shadcn/ui components
+│   ├── components/              # React Components
+│   │   ├── chat/               # Chat UI (messages, input)
+│   │   ├── Plan/               # Plan & todo components
+│   │   ├── dashboard/          # Dashboard widgets
+│   │   └── ui/                 # shadcn/ui base components
 │   │
-│   ├── actions/            # Server actions
-│   │   └── youtube.ts      # YouTube API integration
+│   ├── context/                # React Context
+│   │   ├── ChatContext.tsx    # Chat state
+│   │   └── PlanContext.tsx    # Plan state
 │   │
-│   ├── context/            # React context providers
-│   │   ├── ChatContext.tsx # Chat state management
-│   │   └── PlanContext.tsx # Plan state management
+│   ├── actions/                # Server Actions
+│   │   └── youtube.ts         # YouTube API calls
 │   │
-│   └── types/              # TypeScript type definitions
+│   ├── lib/                    # Utilities
+│   │   ├── credits.ts         # Credit system logic
+│   │   └── utils.ts           # Helper functions
+│   │
+│   └── types/                  # TypeScript types
 │
-├── public/                 # Static assets
-└── scripts/               # Utility scripts
+├── public/                      # Static assets
+└── .github/instructions/        # AI coding instructions
 ```
 
-## 🔧 Key Scripts
+## 🔧 Scripts
 
 ```bash
-npm run dev          # Start development server
+npm run dev          # Start Next.js dev server
+npx convex dev       # Start Convex backend (separate terminal)
 npm run build        # Build for production
-npm run start        # Start production server
 npm run lint         # Run ESLint
 ```
 
 ## 🚀 Deployment
 
-### Recommended Platforms
+### Recommended Setup
+- **Frontend**: [Vercel](https://vercel.com) (one-click Next.js deployment)
+- **Backend**: [Convex](https://dashboard.convex.dev) (auto-deploys on push)
 
-- **Frontend**: [Vercel](https://vercel.com) (optimized for Next.js)
-- **Database**: [Convex](https://www.convex.dev)
-
-### Environment Variables in Production
-
-Ensure all environment variables from `.env.local` are configured in your deployment platform, with production URLs and keys.
+### Production Checklist
+1. Deploy Convex backend: `npx convex deploy`
+2. Add all `.env.local` variables to Vercel
+3. Set `NEXT_PUBLIC_CONVEX_URL` to production Convex URL
+4. Configure Google OAuth redirect URIs for production domain
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
+Contributions welcome! Open issues for bugs/features or submit PRs.
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT License - see [LICENSE](LICENSE)
 
-## 🙏 Acknowledgments
+## 🙏 Built With
 
-- Built with [Google Gemini](https://ai.google.dev/) for advanced AI capabilities
-- UI components from [shadcn/ui](https://ui.shadcn.com/)
-- Icons by [Lucide](https://lucide.dev/)
+- [Google Gemini](https://ai.google.dev/) - AI curriculum generation
+- [Convex](https://www.convex.dev/) - Real-time backend
+- [shadcn/ui](https://ui.shadcn.com/) - Component library
+- [Lucide](https://lucide.dev/) - Icons
 
-## 📧 Contact & Support
+## 📧 Contact
 
-- **Issues**: [GitHub Issues](https://github.com/the-sukhsingh/processor/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/the-sukhsingh/processor/discussions)
+- **GitHub**: [@the-sukhsingh](https://github.com/the-sukhsingh)
+- **Issues**: [Report bugs](https://github.com/the-sukhsingh/processor/issues)
 
 ---
 
-<p align="center">Made with ❤️ by <a href="https://github.com/the-sukhsingh">Sukh Singh</a></p>
+<p align="center">Built with ❤️ by <a href="https://github.com/the-sukhsingh">Sukh Singh</a></p>

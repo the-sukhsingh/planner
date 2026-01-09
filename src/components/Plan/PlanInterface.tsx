@@ -86,7 +86,7 @@ const PlanInterface = ({ setId }: { setId: (id: string) => void }) => {
     playlistUrl: '',
     title: '',
     description: '',
-    difficulty: 'intermediate'
+    difficulty: 'medium'
   })
 
   const [newTodo, setNewTodo] = useState({
@@ -518,9 +518,9 @@ const PlanInterface = ({ setId }: { setId: (id: string) => void }) => {
                         value={youtubeData.difficulty}
                         onChange={(e) => setYoutubeData({ ...youtubeData, difficulty: e.target.value })}
                       >
-                        <option value="beginner">Beginner</option>
-                        <option value="intermediate">Intermediate</option>
-                        <option value="advanced">Advanced</option>
+                        <option value="easy">Beginner</option>
+                        <option value="medium">Intermediate</option>
+                        <option value="hard">Advanced</option>
                       </select>
                     </div>
                     <Button

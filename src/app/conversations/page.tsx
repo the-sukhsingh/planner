@@ -132,7 +132,7 @@ const ConversationsPage = () => {
                   <MessageSquare className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <h1 className="text-sm font-bold tracking-tight leading-none">{selectedConversation?.title}</h1>
+                  <h1 className="text-sm font-bold tracking-tight leading-none">{selectedConversation?.title.slice(0, 50)}</h1>
                   <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest mt-1">Active Session</p>
                 </div>
               </div>
