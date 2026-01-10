@@ -40,26 +40,11 @@ const Home = () => {
               <Button size="lg" className="rounded-full px-8 text-lg font-bold shadow-xl shadow-primary/20 h-14" onClick={() => signIn("google")}>
                 Start Planning Now
               </Button>
-              <Button size="lg" variant="outline" className="rounded-full px-8 text-lg font-bold h-14">
+              <Button size="lg" variant="outline" className="rounded-full px-8 text-lg font-bold h-14" onClick={() => document.getElementById('demo')?.scrollIntoView({ behavior: 'smooth' })}>
                 View Demo
               </Button>
             </div>
 
-            {/* Stats */}
-            <div className="flex items-center justify-center gap-8 pt-8 text-sm text-muted-foreground">
-              <div className="flex items-center gap-2">
-                <Users className="h-4 w-4" />
-                <span>10,000+ Users</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Star className="h-4 w-4" />
-                <span>4.9/5 Rating</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Target className="h-4 w-4" />
-                <span>50,000+ Goals Achieved</span>
-              </div>
-            </div>
           </div>
         </section>
 
@@ -193,6 +178,18 @@ const Home = () => {
                   Follow your plan, track progress, and get AI support whenever you need it.
                 </p>
               </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Youtube Video Section */}
+        <section className="w-full py-20 px-4 bg-background" id='demo'>
+          <div className="max-w-4xl mx-auto text-center">
+            <h2 className="text-4xl md:text-5xl font-bold mb-8">
+              See Planner in Action
+            </h2>
+            <div className="aspect-w-16 aspect-h-9 ">
+              <iframe className='size-full aspect-video rounded-lg' src="https://www.youtube.com/embed/oZpMOohlmu8?si=4Xd5Kv28TZ62khps&amp;controls=1" title="YouTube video player" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"  allowFullScreen></iframe>
             </div>
           </div>
         </section>
